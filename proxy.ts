@@ -25,6 +25,22 @@ export default async function proxy(request: NextRequest) {
       "x-sv-proxy-error",
       `${name}: ${message}`.slice(0, 300).replace(/[\r\n]+/g, " "),
     );
+    // The project URL is public by design — it is sent to every browser that
+    // loads the app — so echoing it here reveals nothing a visitor cannot
+    // already see, and it is the only way to tell an empty value from a
+    // malformed one. JSON.stringify keeps quotes and whitespace visible.
+    response.headers.set(
+      "x-sv-proxy-url",
+      JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL ?? null).slice(0, 200),
+    );
+    response.headers.set(
+      "x-sv-proxy-key-shape",
+      JSON.stringify({
+        set: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+        length: (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").length,
+        prefix: (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").slice(0, 6),
+      }),
+    );
     return response;
   }
 }
