@@ -88,7 +88,9 @@ export function SetupRow({
 
         {/* Fixed columns from here right, so the numbers line up down the
             list instead of drifting with the title length. */}
-        <span className="numeric hidden w-14 shrink-0 text-right text-xs text-fg-muted sm:block">
+        {/* Visible at every width: the row has empty space in the middle on a
+            phone, and R:R is the first number a trader looks for. */}
+        <span className="numeric w-12 shrink-0 text-right text-xs text-fg-muted sm:w-14">
           {ratio ?? "—"}
         </span>
 
