@@ -13,9 +13,16 @@ import {
   Search,
   Settings2,
 } from "lucide-react";
-import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
+import {
+  BARS,
+  LEVELS,
+  RISK_REWARD_LABEL,
+  SESSION,
+  priceAxis,
+  priceScaler,
+} from "@/features/marketing/data/nq-session";
 
 /**
  * The hero's chart, in two compositions.
@@ -60,36 +67,43 @@ const PERSPECTIVE_NARROW = {
   perspective: "900px",
 } as const;
 
-const LIVE_PRICE_DRIFT = [0, -15, 5, -25, -10, -35, -20];
+/**
+ * The instrument and the three readings every surface on the page agrees on.
+ * All four are read off the frozen session rather than typed here, so the
+ * ladder in the hero can never disagree with the chart beside it.
+ */
+export const INSTRUMENT = SESSION.label;
+export const TARGET = String(LEVELS.target);
+export const LIVE = String(LEVELS.live);
+export const ENTRY = String(LEVELS.entry);
 
-/** The instrument, and the three readings every surface on the page agrees on. */
-export const INSTRUMENT = "NQ100";
-export const TARGET = "20450";
-export const LIVE = "20418";
-export const ENTRY = "20386";
+/** The wide terminal draws into a 600-unit box. */
+const yWide = priceScaler(600);
 
-function generateCandles() {
-  const candles = [];
-  for (let i = 0; i < 60; i++) {
-    let base = 300;
-    if (i < 20) base = 300 + Math.sin(i) * 15;
-    else if (i < 30) base = 300 + (i - 20) * 18;
-    else if (i < 40) base = 480 - (i - 30) * 25;
-    else if (i < 55) base = 230 + (i - 40) * 5;
-    else base = 305 - (i - 55) * 12;
+/**
+ * Real bars, mapped into that box. `open`/`close`/`high`/`low` hold y
+ * coordinates from here down — a higher price is a smaller y — while `isBull`
+ * is decided on the prices themselves, before the axis inverts them.
+ */
+const WIDE_CANDLES = BARS.map(([o, h, l, c], index) => ({
+  x: index * 14 + 60,
+  open: yWide(o),
+  close: yWide(c),
+  high: yWide(h),
+  low: yWide(l),
+  isBull: c >= o,
+}));
 
-    const open = base;
-    const close = base + Math.sin(i * 45) * 12;
-    const high = Math.min(open, close) - 8 - Math.abs(Math.cos(i * 10) * 8);
-    const low = Math.max(open, close) + 8 + Math.abs(Math.sin(i * 10) * 8);
+const WIDE_AXIS = priceAxis(6);
 
-    // SVG's Y axis is inverted, so a lower close is a candle that rose.
-    const isBull = close < open;
+/** Where the setup's own levels land in the same box. */
+const Y_ENTRY = yWide(LEVELS.entry);
+const Y_STOP = yWide(LEVELS.stop);
+const Y_TARGET = yWide(LEVELS.target);
+const Y_LIVE = yWide(LEVELS.live);
 
-    candles.push({ x: i * 14 + 60, open, close, high, low, isBull });
-  }
-  return candles;
-}
+/** The bar the position is opened on: the reclaim of the swept low. */
+const ENTRY_X = 8 * 14 + 60;
 
 /* ========================================================================== */
 /* Floating badges — real glass, outside every 3D context                     */
@@ -167,9 +181,6 @@ function WinRateBadge({ className }: { className?: string }) {
 /* ========================================================================== */
 
 export function HeroChart() {
-  const candles = useMemo(() => generateCandles(), []);
-  const lastCandle = candles[candles.length - 1];
-
   return (
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-canvas">
       {/* Ambient light, sized down hard on phones: 35rem of blur on a 390px
@@ -246,7 +257,7 @@ export function HeroChart() {
                   aria-hidden="true"
                 >
                   <g className="opacity-90">
-                    {candles.map((candle, i) => (
+                    {WIDE_CANDLES.map((candle, i) => (
                       <g key={i}>
                         <line
                           x1={candle.x}
@@ -270,59 +281,62 @@ export function HeroChart() {
                     ))}
                   </g>
 
-                  <rect
-                    x="350"
-                    y="320"
-                    width="150"
-                    height="40"
-                    className="fill-accent-soft stroke-accent/25"
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
-                  />
-
-                  <line
-                    x1="200"
-                    y1="520"
-                    x2="800"
-                    y2="280"
-                    stroke="var(--accent)"
-                    strokeWidth="2.5"
-                    strokeDasharray="7 7"
-                    className="opacity-60"
-                  />
-
-                  <motion.g
-                    animate={{ y: LIVE_PRICE_DRIFT }}
-                    transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <line
-                      x1={lastCandle.x + 14}
-                      y1={lastCandle.close - 20}
-                      x2={lastCandle.x + 14}
-                      y2={lastCandle.close + 40}
-                      stroke="var(--positive)"
+                  {/* The long-position tool, drawn from the setup's own
+                      numbers: reward above the entry, risk below it. Its
+                      proportions are the risk-to-reward, not a shape chosen
+                      to look good. */}
+                  <g className="opacity-90">
+                    <rect
+                      x={ENTRY_X}
+                      y={Y_TARGET}
+                      width={760 - ENTRY_X}
+                      height={Y_ENTRY - Y_TARGET}
+                      className="fill-positive-soft stroke-positive/45"
                       strokeWidth="1.5"
                     />
                     <rect
-                      x={lastCandle.x + 11}
-                      y={lastCandle.close - 10}
-                      width="6"
-                      height="50"
-                      className="fill-positive"
-                      rx="1"
+                      x={ENTRY_X}
+                      y={Y_ENTRY}
+                      width={760 - ENTRY_X}
+                      height={Y_STOP - Y_ENTRY}
+                      className="fill-negative-soft stroke-negative/45"
+                      strokeWidth="1.5"
                     />
-                    <circle
-                      cx={lastCandle.x + 14}
-                      cy={lastCandle.close - 10}
-                      r="4"
-                      className="fill-positive"
+                    <line
+                      x1={ENTRY_X - 16}
+                      y1={Y_ENTRY}
+                      x2="776"
+                      y2={Y_ENTRY}
+                      stroke="var(--fg-muted)"
+                      strokeWidth="1.5"
+                      strokeDasharray="5 5"
                     />
-                    <circle
-                      cx={lastCandle.x + 14}
-                      cy={lastCandle.close - 10}
-                      r="10"
-                      className="fill-positive opacity-40"
+                    <text
+                      x={ENTRY_X + 16}
+                      y={Y_TARGET + 34}
+                      className="fill-positive font-mono text-[22px] font-semibold"
                     >
+                      {RISK_REWARD_LABEL}
+                    </text>
+                  </g>
+
+                  {/* The live price. It no longer drifts: the tag shows the
+                      session's actual last close, and a line that slides while
+                      its own label stays put reads as a bug. The pulse carries
+                      the sense of a live feed instead. */}
+                  <g>
+                    <line
+                      x1="0"
+                      y1={Y_LIVE}
+                      x2="1000"
+                      y2={Y_LIVE}
+                      stroke="var(--positive)"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 4"
+                      className="opacity-70"
+                    />
+                    <circle cx="890" cy={Y_LIVE} r="4" className="fill-positive" />
+                    <circle cx="890" cy={Y_LIVE} r="10" className="fill-positive opacity-40">
                       <animate
                         attributeName="r"
                         values="6; 16; 6"
@@ -336,18 +350,9 @@ export function HeroChart() {
                         repeatCount="indefinite"
                       />
                     </circle>
-                    <line
-                      x1={lastCandle.x + 14}
-                      y1={lastCandle.close - 10}
-                      x2="1000"
-                      y2={lastCandle.close - 10}
-                      stroke="var(--positive)"
-                      strokeWidth="1.5"
-                      strokeDasharray="4 4"
-                    />
                     <rect
                       x="912"
-                      y={lastCandle.close - 22}
+                      y={Y_LIVE - 12}
                       width="88"
                       height="24"
                       className="fill-positive"
@@ -355,61 +360,21 @@ export function HeroChart() {
                     />
                     <text
                       x="956"
-                      y={lastCandle.close - 5}
+                      y={Y_LIVE + 5}
                       className="fill-white text-[11px] font-mono font-semibold"
                       textAnchor="middle"
                     >
-                      {LIVE}.5
-                    </text>
-                  </motion.g>
-
-                  <g
-                    transform={`translate(${lastCandle.x - 40}, 80)`}
-                    className="opacity-90"
-                  >
-                    <rect
-                      x="0"
-                      y="0"
-                      width="180"
-                      height="150"
-                      className="fill-positive-soft stroke-positive/50"
-                      strokeWidth="1.5"
-                    />
-                    <rect
-                      x="0"
-                      y="150"
-                      width="180"
-                      height="40"
-                      className="fill-negative-soft stroke-negative/50"
-                      strokeWidth="1.5"
-                    />
-                    <line
-                      x1="-15"
-                      y1="150"
-                      x2="195"
-                      y2="150"
-                      stroke="var(--fg-muted)"
-                      strokeWidth="1.5"
-                      strokeDasharray="4 4"
-                    />
-                    <text
-                      x="90"
-                      y="80"
-                      className="fill-positive font-mono text-xl font-semibold"
-                      textAnchor="middle"
-                    >
-                      3.2R
+                      {LIVE}
                     </text>
                   </g>
+
+
                 </svg>
 
                 <div className="numeric absolute bottom-0 right-0 top-0 flex w-[4.5rem] flex-col items-center justify-between border-l border-black/[0.05] bg-surface py-8 text-[10px] text-fg-subtle dark:border-white/[0.06]">
-                  <span>20480</span>
-                  <span>20460</span>
-                  <span>20440</span>
-                  <span>20420</span>
-                  <span>20400</span>
-                  <span>20380</span>
+                  {WIDE_AXIS.map((price) => (
+                    <span key={price}>{price}</span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -447,26 +412,36 @@ export function HeroChart() {
 /* Phone and tablet: the same series, composed vertically, in page flow       */
 /* ========================================================================== */
 
-export function HeroChartMobile({ className }: { className?: string }) {
-  const candles = useMemo(() => generateCandles(), []);
+/* The phone shows the tail of the same session, rescaled to its own window:
+   fourteen bars across 335px need the full height to stay readable, and the
+   sixty-bar range would flatten them into a line. */
+const MOBILE_SLICE = BARS.slice(-14);
 
-  // The last 14 bars, renormalised onto the panel's box.
-  const bars = useMemo(() => {
-    const slice = candles.slice(-14);
-    const values = slice.flatMap((c) => [c.high, c.low]);
-    const min = Math.min(...values);
-    const span = Math.max(Math.max(...values) - min, 1);
-    const toY = (value: number) => 18 + ((value - min) / span) * 184;
+const MOBILE = (() => {
+  const lo = Math.min(...MOBILE_SLICE.map((b) => b[2]));
+  const hi = Math.max(...MOBILE_SLICE.map((b) => b[1]));
+  const pad = (hi - lo) * 0.12;
+  const min = lo - pad;
+  const span = hi - lo + pad * 2;
+  const toY = (price: number) => 202 - ((price - min) / span) * 184;
 
-    return slice.map((candle, index) => ({
+  return {
+    toY,
+    bars: MOBILE_SLICE.map(([o, h, l, c], index) => ({
       cx: 20 + index * 17,
-      open: toY(candle.open),
-      close: toY(candle.close),
-      high: toY(candle.high),
-      low: toY(candle.low),
-      isBull: candle.isBull,
-    }));
-  }, [candles]);
+      open: toY(o),
+      close: toY(c),
+      high: toY(h),
+      low: toY(l),
+      isBull: c >= o,
+    })),
+    // Three readings across the window, on a round grid.
+    axis: [hi, (hi + lo) / 2, lo].map((v) => Math.round(v / 25) * 25),
+  };
+})();
+
+export function HeroChartMobile({ className }: { className?: string }) {
+  const bars = MOBILE.bars;
 
   return (
     <div className={cn("relative", className)}>
@@ -520,13 +495,13 @@ export function HeroChartMobile({ className }: { className?: string }) {
               role="img"
               aria-label={`Example ${INSTRUMENT} candlestick chart with entry, live price and target`}
             >
-              {[0, 1, 2].map((row) => (
+              {MOBILE.axis.map((price) => (
                 <line
-                  key={row}
+                  key={price}
                   x1="0"
                   x2="262"
-                  y1={40 + row * 60}
-                  y2={40 + row * 60}
+                  y1={MOBILE.toY(price)}
+                  y2={MOBILE.toY(price)}
                   className="stroke-border"
                   strokeWidth="1"
                 />
@@ -562,34 +537,31 @@ export function HeroChartMobile({ className }: { className?: string }) {
                 className="stroke-border"
                 strokeWidth="1"
               />
-              {["20460", "20420", "20380"].map((label, row) => (
+              {MOBILE.axis.map((price) => (
                 <text
-                  key={label}
+                  key={price}
                   x="268"
-                  y={44 + row * 60}
+                  y={MOBILE.toY(price) + 3}
                   className="fill-fg-subtle font-mono"
                   fontSize="9"
                 >
-                  {label}
+                  {price}
                 </text>
               ))}
 
-              <motion.g
-                animate={{ y: LIVE_PRICE_DRIFT }}
-                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-              >
+              <g>
                 <line
                   x1="0"
                   x2="262"
-                  y1="92"
-                  y2="92"
+                  y1={MOBILE.toY(LEVELS.live)}
+                  y2={MOBILE.toY(LEVELS.live)}
                   className="stroke-accent"
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                 />
                 <rect
                   x="262"
-                  y="83"
+                  y={MOBILE.toY(LEVELS.live) - 9}
                   width="56"
                   height="18"
                   rx="3"
@@ -597,7 +569,7 @@ export function HeroChartMobile({ className }: { className?: string }) {
                 />
                 <text
                   x="290"
-                  y="95.5"
+                  y={MOBILE.toY(LEVELS.live) + 3.5}
                   textAnchor="middle"
                   className="fill-accent-fg font-mono"
                   fontSize="10"
@@ -605,13 +577,13 @@ export function HeroChartMobile({ className }: { className?: string }) {
                 >
                   {LIVE}
                 </text>
-              </motion.g>
+              </g>
             </svg>
 
             <div className="grid grid-cols-3 divide-x divide-black/[0.05] border-t border-black/[0.05] dark:divide-white/[0.06] dark:border-white/[0.06]">
               {[
                 { label: "Entry", value: ENTRY },
-                { label: "Risk / reward", value: "3.2R" },
+                { label: "Risk / reward", value: RISK_REWARD_LABEL },
                 { label: "Setup score", value: "88" },
               ].map((item) => (
                 <div key={item.label} className="px-3 py-3">

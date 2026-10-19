@@ -12,6 +12,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/features/marketing/components/reveal";
+import { LEVELS, RISK_REWARD_LABEL, SESSION } from "@/features/marketing/data/nq-session";
 
 /**
  * The product story, told in four isometric mockups.
@@ -229,11 +230,11 @@ function CaptureMockup() {
       <div className="relative min-w-0 flex-1">
         <div className="flex items-center gap-2 border-b border-black/[0.05] px-3 py-2 dark:border-white/[0.06]">
           <span className="text-[12px] font-semibold tracking-tight text-fg">
-            NQ100
+            {SESSION.label}
           </span>
           <span className="numeric text-[10.5px] text-accent">15m</span>
           <span className="numeric ml-auto text-[10.5px] text-fg-subtle">
-            20418.5
+            {LEVELS.live}
           </span>
         </div>
 
@@ -310,17 +311,19 @@ function CaptureMockup() {
             textAnchor="middle"
             className="fill-positive font-mono text-[15px] font-semibold"
           >
-            3.2R
+            {RISK_REWARD_LABEL}
           </text>
         </svg>
       </div>
 
       <div className="numeric flex w-12 flex-col justify-between border-l border-black/[0.05] bg-canvas py-3 text-center text-[8.5px] text-fg-subtle dark:border-white/[0.06]">
-        <span>20460</span>
-        <span>20440</span>
-        <span className="mx-1 rounded bg-accent py-0.5 text-accent-fg">20418</span>
-        <span>20400</span>
-        <span>20380</span>
+        <span>{LEVELS.target}</span>
+        <span>{LEVELS.target - 75}</span>
+        <span className="mx-1 rounded bg-accent py-0.5 text-accent-fg">
+          {LEVELS.live}
+        </span>
+        <span>{LEVELS.entry}</span>
+        <span>{LEVELS.stop}</span>
       </div>
     </Panel>
   );
@@ -355,7 +358,7 @@ export function Capture() {
 /* ========================================================================== */
 
 const VAULT_ROWS = [
-  { pair: "NQ100", play: "London breakout", r: "+3.2R", win: true },
+  { pair: SESSION.label, play: "London breakout", r: `+${RISK_REWARD_LABEL}`, win: true },
   { pair: "EURUSD", play: "Asian range fade", r: "−1.0R", win: false },
   { pair: "XAUUSD", play: "Liquidity sweep", r: "+1.8R", win: true },
   { pair: "NQ100", play: "Opening drive", r: "+2.4R", win: true },
@@ -519,7 +522,7 @@ function AiReviewMockup() {
           Execution review
         </p>
         <span className="numeric ml-auto text-[10.5px] text-fg-subtle">
-          NQ100 · 14 Mar
+          {SESSION.label} · 16 Oct
         </span>
       </div>
 
