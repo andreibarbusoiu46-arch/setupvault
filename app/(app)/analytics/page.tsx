@@ -14,8 +14,10 @@ import { getFilterFacets } from "@/services/setups.service";
 import { hasActiveFilters, parseFilters } from "@/features/setups/filters";
 import { MARKET_LABELS } from "@/features/setups/constants";
 import { SetupsToolbar } from "@/features/setups/components/setups-toolbar";
+import { HabitCost } from "@/features/analytics/components/habit-cost";
 import {
   byDirection,
+  byTag,
   byMarket,
   byStrategy,
   computeStats,
@@ -88,6 +90,7 @@ export default async function AnalyticsPage({
   const favourites = favouritesSplit(rows);
   const scores = scoreSummary(rows);
   const bands = scoreBands(rows);
+  const habits = byTag(rows);
 
   const [currentYear, currentMonth] = today.split("-").map(Number);
   const filtered = hasActiveFilters(filters);
@@ -206,6 +209,10 @@ export default async function AnalyticsPage({
                 ))}
               </dl>
             </Card>
+
+            <div className="lg:col-span-2">
+              <HabitCost tags={habits} />
+            </div>
 
             <Card glass className="p-5">
               <h3 className="text-sm font-medium text-fg">

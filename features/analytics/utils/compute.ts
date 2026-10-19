@@ -406,3 +406,85 @@ export function formatWinRate(rate: number | null) {
 export function formatRr(value: number | null) {
   return value === null ? "—" : `${value.toFixed(2)}R`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* R multiples and habits                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The R a setup actually returned, read off the plan.
+ *
+ * A win counts the ratio that was planned; a loss counts exactly −1R, because
+ * the stop is where the plan said the loss ends; break-even counts zero. A
+ * setup still open, or one saved without a ratio, returns null and is left out
+ * of every total rather than counted as nothing.
+ *
+ * This is an approximation and the interface says so where it is shown. If you
+ * closed two thirds early or moved the stop, the real figure differs — and the
+ * gap between this number and what your broker says is itself worth knowing.
+ */
+export function realisedR(row: AnalyticsRow): number | null {
+  if (row.result === "breakeven") return 0;
+  if (row.result === "loss") return -1;
+  if (row.result !== "win") return null;
+
+  const ratio = row.risk_reward === null ? null : Number(row.risk_reward);
+  return ratio !== null && Number.isFinite(ratio) ? ratio : null;
+}
+
+export interface TagCost extends GroupStats {
+  /** Sum of realised R across every scored setup carrying the tag. */
+  netR: number;
+  /** How many of the tag's setups could be scored at all. */
+  scored: number;
+}
+
+/**
+ * What each of your own tags has cost or paid.
+ *
+ * Grouped on the tags already in the library rather than a new field nobody
+ * has filled in: people tag "fomo", "early exit", "revenge" of their own
+ * accord, and that vocabulary is more honest than a list we hand them.
+ *
+ * `minimum` keeps single occurrences out. One tagged setup is an anecdote; the
+ * screen is for the pattern.
+ */
+export function byTag(rows: AnalyticsRow[], minimum = 3): TagCost[] {
+  const buckets = new Map<string, { label: string; rows: AnalyticsRow[] }>();
+
+  for (const row of rows) {
+    for (const raw of row.tags ?? []) {
+      const label = raw.trim();
+      if (!label) continue;
+      const key = label.toLowerCase();
+
+      const existing = buckets.get(key);
+      if (existing) existing.rows.push(row);
+      else buckets.set(key, { label, rows: [row] });
+    }
+  }
+
+  return [...buckets.entries()]
+    .filter(([, bucket]) => bucket.rows.length >= minimum)
+    .map(([key, bucket]) => {
+      let netR = 0;
+      let scored = 0;
+
+      for (const row of bucket.rows) {
+        const r = realisedR(row);
+        if (r === null) continue;
+        netR += r;
+        scored++;
+      }
+
+      return {
+        key,
+        label: bucket.label,
+        netR: Math.round(netR * 100) / 100,
+        scored,
+        ...computeStats(bucket.rows),
+      };
+    })
+    // Costliest first: the screen exists to answer what is going wrong.
+    .sort((a, b) => a.netR - b.netR || b.total - a.total);
+}
