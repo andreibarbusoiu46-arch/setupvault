@@ -140,3 +140,45 @@ export function priceScaler(height: number, padding = 0.08) {
 
   return (price: number) => height - ((price - min) / span) * height;
 }
+
+/**
+ * Contracts traded in each of those bars, from the same request.
+ *
+ * Volume is what a chart without it is missing: it is why one bar is the one
+ * that mattered. The spike at index 22 is the bar that broke the range, and
+ * the climb through the last five is the session closing out — neither of
+ * which a drawing would have thought to invent.
+ */
+export const VOLUMES: readonly number[] = [
+  811, 1653, 798, 2099, 2258, 1966, 1756, 3866, 5264, 3261,
+  2538, 1947, 1822, 2236, 1743, 1510, 2085, 1724, 1021, 1293,
+  980, 1889, 5268, 2888, 1850, 1601, 1150, 1876, 1469, 1591,
+  1554, 2355, 1992, 1842, 1115, 2418, 1540, 1687, 2089, 3366,
+  1899, 1143, 1058, 1372, 1204, 1427, 2397, 2504, 1666, 1685,
+  1454, 3223, 1725, 2899, 2161, 3457, 2747, 5099, 4392, 5759,
+] as const;
+
+/** Unix seconds of the first bar. Each one is fifteen minutes after the last. */
+export const FIRST_BAR_AT = 1792102500;
+export const BAR_SECONDS = 900;
+
+/**
+ * The clock label for a bar, in the exchange's own timezone rather than the
+ * reader's — a session is a New York session wherever you open the page.
+ */
+const clock = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/New_York",
+});
+
+export function barTimeLabel(index: number) {
+  return clock.format(new Date((FIRST_BAR_AT + index * BAR_SECONDS) * 1000));
+}
+
+/** Where the volume histogram puts a bar, as a fraction of its own height. */
+export function volumeScale() {
+  const peak = Math.max(...VOLUMES);
+  return (value: number) => (peak === 0 ? 0 : value / peak);
+}

@@ -20,8 +20,11 @@ import {
   LEVELS,
   RISK_REWARD_LABEL,
   SESSION,
+  VOLUMES,
+  barTimeLabel,
   priceAxis,
   priceScaler,
+  volumeScale,
 } from "@/features/marketing/data/nq-session";
 
 /**
@@ -77,33 +80,73 @@ export const TARGET = String(LEVELS.target);
 export const LIVE = String(LEVELS.live);
 export const ENTRY = String(LEVELS.entry);
 
-/** The wide terminal draws into a 600-unit box. */
-const yWide = priceScaler(600);
+/**
+ * The wide terminal's 600-unit box, split the way a charting platform splits
+ * it: price on top, volume on its own pane underneath, a gap between them.
+ */
+const PRICE_H = 470;
+const VOL_TOP = 500;
+const VOL_H = 100;
+
+const yPrice = priceScaler(PRICE_H);
 
 /**
- * Real bars, mapped into that box. `open`/`close`/`high`/`low` hold y
- * coordinates from here down — a higher price is a smaller y — while `isBull`
- * is decided on the prices themselves, before the axis inverts them.
+ * Real bars, mapped into the price pane. `open`/`close`/`high`/`low` hold y
+ * coordinates from here down — a higher price is a smaller y — while
+ * `isBull` is decided on the prices themselves, before the axis inverts them.
  */
 const WIDE_CANDLES = BARS.map(([o, h, l, c], index) => ({
   x: index * 14 + 60,
-  open: yWide(o),
-  close: yWide(c),
-  high: yWide(h),
-  low: yWide(l),
+  open: yPrice(o),
+  close: yPrice(c),
+  high: yPrice(h),
+  low: yPrice(l),
   isBull: c >= o,
 }));
 
 const WIDE_AXIS = priceAxis(6);
 
-/** Where the setup's own levels land in the same box. */
-const Y_ENTRY = yWide(LEVELS.entry);
-const Y_STOP = yWide(LEVELS.stop);
-const Y_TARGET = yWide(LEVELS.target);
-const Y_LIVE = yWide(LEVELS.live);
+const toShare = volumeScale();
+const VOLUME_SHARE = VOLUMES.map(toShare);
+
+/** Where the setup's own levels land in the same pane. */
+const Y_ENTRY = yPrice(LEVELS.entry);
+const Y_STOP = yPrice(LEVELS.stop);
+const Y_TARGET = yPrice(LEVELS.target);
+const Y_LIVE = yPrice(LEVELS.live);
 
 /** The bar the position is opened on: the reclaim of the swept low. */
 const ENTRY_X = 8 * 14 + 60;
+const LAST_X = WIDE_CANDLES[WIDE_CANDLES.length - 1].x;
+
+/** Every tenth bar carries a clock label, as a platform would space them. */
+const TIME_TICKS = BARS.map((_, index) => index)
+  .filter((index) => index % 10 === 0)
+  .map((index) => ({
+    index,
+    x: index * 14 + 60,
+    label: barTimeLabel(index),
+  }));
+
+/* The readout along the top. Both figures come from the last bar in the
+   window and the one before it — nothing here is decided by hand. */
+const LAST = BARS[BARS.length - 1];
+const PREVIOUS_CLOSE = BARS[BARS.length - 2][3];
+const LAST_UP = LAST[3] >= PREVIOUS_CLOSE;
+
+const LAST_BAR = [
+  { key: "O", value: LAST[0] },
+  { key: "H", value: LAST[1] },
+  { key: "L", value: LAST[2] },
+  { key: "C", value: LAST[3] },
+] as const;
+
+const LAST_CHANGE = (() => {
+  const delta = LAST[3] - PREVIOUS_CLOSE;
+  const percent = (delta / PREVIOUS_CLOSE) * 100;
+  const sign = delta >= 0 ? "+" : "−";
+  return `${sign}${Math.abs(delta).toFixed(2)} (${sign}${Math.abs(percent).toFixed(2)}%)`;
+})();
 
 /* ========================================================================== */
 /* Floating badges — real glass, outside every 3D context                     */
@@ -255,14 +298,38 @@ export function HeroChart() {
               </div>
 
               <div className="relative flex-1 overflow-hidden">
-                <div
-                  className="absolute inset-0 opacity-[0.35]"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
-                    backgroundSize: "56px 56px",
-                  }}
-                />
+                {/* The symbol sits behind the price, the way every terminal
+                    marks a chart that belongs to a workspace. */}
+                <p
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center text-[5rem] font-semibold tracking-tight text-fg opacity-[0.03]"
+                >
+                  {INSTRUMENT}
+                </p>
+
+                {/* The OHLC readout. A chart without one is a picture of a
+                    chart; this is the line a trader's eye goes to first. */}
+                <div className="numeric pointer-events-none absolute left-3 top-2.5 z-10 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[10.5px]">
+                  <span className="text-[11px] font-semibold tracking-tight text-fg">
+                    {INSTRUMENT}
+                  </span>
+                  <span className="text-fg-subtle">15m</span>
+                  {LAST_BAR.map((field) => (
+                    <span key={field.key} className="text-fg-subtle">
+                      {field.key}
+                      <span
+                        className={
+                          LAST_UP ? "ml-1 text-positive" : "ml-1 text-negative"
+                        }
+                      >
+                        {field.value}
+                      </span>
+                    </span>
+                  ))}
+                  <span className={LAST_UP ? "text-positive" : "text-negative"}>
+                    {LAST_CHANGE}
+                  </span>
+                </div>
 
                 <svg
                   viewBox="0 0 1000 600"
@@ -270,30 +337,33 @@ export function HeroChart() {
                   preserveAspectRatio="none"
                   aria-hidden="true"
                 >
-                  <g className="opacity-90">
-                    {WIDE_CANDLES.map((candle, i) => (
-                      <g key={i}>
-                        <line
-                          x1={candle.x}
-                          y1={candle.high}
-                          x2={candle.x}
-                          y2={candle.low}
-                          stroke={
-                            candle.isBull ? "var(--positive)" : "var(--negative)"
-                          }
-                          strokeWidth="1.5"
-                        />
-                        <rect
-                          x={candle.x - 3}
-                          y={Math.min(candle.open, candle.close)}
-                          width="6"
-                          height={Math.max(1, Math.abs(candle.close - candle.open))}
-                          className={candle.isBull ? "fill-positive" : "fill-negative"}
-                          rx="1"
-                        />
-                      </g>
-                    ))}
-                  </g>
+                  {/* Gridlines land on the axis prices and on the time ticks,
+                      so every line in the chart means something. A grid of
+                      even squares is wallpaper. */}
+                  {WIDE_AXIS.map((price) => (
+                    <line
+                      key={`h${price}`}
+                      x1="0"
+                      x2="1000"
+                      y1={yPrice(price)}
+                      y2={yPrice(price)}
+                      className="stroke-border"
+                      strokeWidth="1"
+                      opacity="0.55"
+                    />
+                  ))}
+                  {TIME_TICKS.map((tick) => (
+                    <line
+                      key={`v${tick.index}`}
+                      x1={tick.x}
+                      x2={tick.x}
+                      y1="0"
+                      y2={VOL_TOP + VOL_H}
+                      className="stroke-border"
+                      strokeWidth="1"
+                      opacity="0.4"
+                    />
+                  ))}
 
                   {/* The long-position tool, drawn from the setup's own
                       numbers: reward above the entry, risk below it. Its
@@ -335,6 +405,51 @@ export function HeroChart() {
                     </text>
                   </g>
 
+                  {/* Candles. The wick is a hair, the body is six units wide
+                      — the proportions a charting platform actually uses. */}
+                  <g>
+                    {WIDE_CANDLES.map((candle, i) => (
+                      <g key={i}>
+                        <line
+                          x1={candle.x}
+                          y1={candle.high}
+                          x2={candle.x}
+                          y2={candle.low}
+                          stroke={
+                            candle.isBull ? "var(--positive)" : "var(--negative)"
+                          }
+                          strokeWidth="1"
+                        />
+                        <rect
+                          x={candle.x - 3}
+                          y={Math.min(candle.open, candle.close)}
+                          width="6"
+                          height={Math.max(1, Math.abs(candle.close - candle.open))}
+                          className={candle.isBull ? "fill-positive" : "fill-negative"}
+                        />
+                      </g>
+                    ))}
+                  </g>
+
+                  {/* Volume, on its own pane under the price. The spike is the
+                      bar that broke the range — which is the point of drawing
+                      it at all. */}
+                  <g className="opacity-45">
+                    {WIDE_CANDLES.map((candle, i) => {
+                      const height = VOLUME_SHARE[i] * VOL_H;
+                      return (
+                        <rect
+                          key={`v${i}`}
+                          x={candle.x - 3}
+                          y={VOL_TOP + VOL_H - height}
+                          width="6"
+                          height={Math.max(height, 1)}
+                          className={candle.isBull ? "fill-positive" : "fill-negative"}
+                        />
+                      );
+                    })}
+                  </g>
+
                   {/* The live price. It no longer drifts: the tag shows the
                       session's actual last close, and a line that slides while
                       its own label stays put reads as a bug. The pulse carries
@@ -346,15 +461,15 @@ export function HeroChart() {
                       x2="1000"
                       y2={Y_LIVE}
                       stroke="var(--positive)"
-                      strokeWidth="1.5"
+                      strokeWidth="1"
                       strokeDasharray="4 4"
                       className="opacity-70"
                     />
-                    <circle cx="890" cy={Y_LIVE} r="4" className="fill-positive" />
-                    <circle cx="890" cy={Y_LIVE} r="10" className="fill-positive opacity-40">
+                    <circle cx={LAST_X} cy={Y_LIVE} r="3" className="fill-positive" />
+                    <circle cx={LAST_X} cy={Y_LIVE} r="9" className="fill-positive opacity-40">
                       <animate
                         attributeName="r"
-                        values="6; 16; 6"
+                        values="5; 15; 5"
                         dur="2.4s"
                         repeatCount="indefinite"
                       />
@@ -365,30 +480,41 @@ export function HeroChart() {
                         repeatCount="indefinite"
                       />
                     </circle>
-                    <rect
-                      x="912"
-                      y={Y_LIVE - 12}
-                      width="88"
-                      height="24"
-                      className="fill-positive"
-                      rx="3"
-                    />
-                    <text
-                      x="956"
-                      y={Y_LIVE + 5}
-                      className="fill-white text-[11px] font-mono font-semibold"
-                      textAnchor="middle"
-                    >
-                      {LIVE}
-                    </text>
                   </g>
-
-
                 </svg>
 
-                <div className="numeric absolute bottom-0 right-0 top-0 flex w-[4.5rem] flex-col items-center justify-between border-l border-black/[0.05] bg-surface py-8 text-[10px] text-fg-subtle dark:border-white/[0.06]">
+                {/* The price scale. Its labels are positioned at the real
+                    height of each gridline rather than spread evenly, which is
+                    the detail that stops a mock chart reading as a mock. */}
+                <div className="numeric absolute bottom-0 right-0 top-0 w-[4.5rem] border-l border-black/[0.05] bg-surface text-[10px] text-fg-subtle dark:border-white/[0.06]">
                   {WIDE_AXIS.map((price) => (
-                    <span key={price}>{price}</span>
+                    <span
+                      key={price}
+                      className="absolute left-0 right-0 -translate-y-1/2 text-center"
+                      style={{ top: `${(yPrice(price) / 600) * 100}%` }}
+                    >
+                      {price}
+                    </span>
+                  ))}
+
+                  <span
+                    className="absolute left-1 right-1 -translate-y-1/2 rounded-[3px] bg-positive py-0.5 text-center text-[10px] font-semibold text-white"
+                    style={{ top: `${(Y_LIVE / 600) * 100}%` }}
+                  >
+                    {LIVE}
+                  </span>
+                </div>
+
+                {/* The clock, in the exchange's timezone. */}
+                <div className="numeric pointer-events-none absolute bottom-0 left-0 right-[4.5rem] h-5 border-t border-black/[0.05] text-[9.5px] text-fg-subtle dark:border-white/[0.06]">
+                  {TIME_TICKS.map((tick) => (
+                    <span
+                      key={tick.index}
+                      className="absolute top-0.5 -translate-x-1/2"
+                      style={{ left: `${(tick.x / 1000) * 100}%` }}
+                    >
+                      {tick.label}
+                    </span>
                   ))}
                 </div>
               </div>
