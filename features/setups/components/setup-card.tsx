@@ -4,7 +4,7 @@ import { ImageOff } from "lucide-react";
 
 import { formatRatio } from "@/lib/risk-reward";
 import { ROUTES } from "@/lib/routes";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { MARKET_LABELS } from "@/features/setups/constants";
 import {
   DirectionBadge,
@@ -36,7 +36,20 @@ export function SetupCard({
         href={`${ROUTES.setups}/${setup.id}`}
         className="block focus-visible:outline-none"
       >
-        <div className="grid-surface relative aspect-video w-full overflow-hidden bg-canvas-subtle">
+        <div
+          className={cn(
+            "grid-surface relative w-full overflow-hidden bg-canvas-subtle",
+            // 16:9 is the right shape for a chart, but at full width on a
+            // phone one card then fills the screen and the library stops
+            // being scannable — which is the whole job. The cap keeps the
+            // ratio where there is room and trades it for density where
+            // there is not.
+            "aspect-video max-h-56 sm:max-h-64",
+            // A setup with no screenshot has nothing to show, so it does not
+            // get to claim the same height as one that has.
+            screenshotUrl ? "" : "aspect-[16/7] max-h-32",
+          )}
+        >
           {screenshotUrl ? (
             <Image
               src={screenshotUrl}

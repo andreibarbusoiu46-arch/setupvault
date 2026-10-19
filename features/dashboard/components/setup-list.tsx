@@ -68,7 +68,10 @@ export function SetupList({
                   <span className="numeric text-fg-muted">{setup.ticker}</span>
                   <DirectionBadge direction={setup.direction} variant="text" />
                   {ratio ? <span className="numeric">{ratio}</span> : null}
-                  <span className="hidden sm:inline">
+                  {/* "When" is half of recognising your own setup. It used to
+                      vanish below `sm`, which is exactly where the row has
+                      space to spare. */}
+                  <span className="truncate">
                     {formatRelativeTime(setup.created_at)}
                   </span>
                 </p>

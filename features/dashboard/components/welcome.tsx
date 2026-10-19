@@ -34,7 +34,9 @@ export function Welcome({ name }: { name: string }) {
         </p>
       </div>
 
-      <Button asChild>
+      {/* self-start: as a column child it would otherwise stretch edge to
+          edge on a phone, which reads as a banner rather than an action. */}
+      <Button asChild className="self-start">
         <Link href={`${ROUTES.setups}/new`}>
           <Plus aria-hidden="true" />
           New setup
