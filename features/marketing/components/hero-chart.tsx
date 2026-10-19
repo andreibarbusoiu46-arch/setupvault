@@ -201,7 +201,11 @@ export function HeroChart() {
       {/* Only from `lg`: at tablet widths this crowds the headline, and below
           that the vertical panel replaces it entirely. */}
       <div
-        className="absolute left-1/2 top-1/2 hidden h-[800px] w-[110vw] max-w-[1400px] -translate-x-1/2 -translate-y-1/2 lg:block lg:min-w-[1000px] lg:scale-[0.88] xl:scale-100"
+        // Held at just over half strength. Real price action fills the frame
+        // far more densely than the generated series it replaced, and at full
+        // opacity it competes with the headline sitting on top of it. The
+        // badges and the floor keep their own weight; only the terminal drops.
+        className="absolute left-1/2 top-1/2 hidden h-[800px] w-[110vw] max-w-[1400px] -translate-x-1/2 -translate-y-1/2 opacity-[0.55] lg:block lg:min-w-[1000px] lg:scale-[0.88] xl:scale-100"
         style={PERSPECTIVE_WIDE}
       >
         <div className="sv-tilt-wide relative h-full w-full" style={WEBKIT_3D}>
@@ -415,7 +419,7 @@ export function HeroChart() {
           series it replaced — busy enough to compete with the headline sitting
           on top of it. This quiets the left half and leaves the right, where
           the glass badges are, alone. */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[62%] bg-gradient-to-r from-canvas via-canvas/88 to-transparent lg:block" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[58%] bg-gradient-to-r from-canvas via-canvas/96 to-transparent lg:block" />
 
       {/* Edge fades, so the terminal dissolves into the page rather than
           ending on a hard rectangle behind the copy. */}
