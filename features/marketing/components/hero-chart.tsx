@@ -183,6 +183,16 @@ function WinRateBadge({ className }: { className?: string }) {
 export function HeroChart() {
   return (
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-canvas">
+      {/* The floor the terminal hovers above. First in the layer, so every
+          glow, panel and fade below paints over it. */}
+      <div className="sv-floor" aria-hidden="true">
+        <div className="sv-floor-tilt">
+          <div className="sv-floor-plane" />
+        </div>
+        <div className="sv-floor-glow" />
+        <div className="sv-floor-fade" />
+      </div>
+
       {/* Ambient light, sized down hard on phones: 35rem of blur on a 390px
           screen washes out the whole hero rather than lighting it. */}
       <div className="absolute left-1/4 top-1/4 size-[15rem] rounded-full bg-accent/[0.13] blur-[70px] sm:size-[34rem] sm:blur-[110px]" />
@@ -285,11 +295,11 @@ export function HeroChart() {
                       numbers: reward above the entry, risk below it. Its
                       proportions are the risk-to-reward, not a shape chosen
                       to look good. */}
-                  <g className="opacity-90">
+                  <g className="opacity-60">
                     <rect
                       x={ENTRY_X}
                       y={Y_TARGET}
-                      width={760 - ENTRY_X}
+                      width={700 - ENTRY_X}
                       height={Y_ENTRY - Y_TARGET}
                       className="fill-positive-soft stroke-positive/45"
                       strokeWidth="1.5"
@@ -297,7 +307,7 @@ export function HeroChart() {
                     <rect
                       x={ENTRY_X}
                       y={Y_ENTRY}
-                      width={760 - ENTRY_X}
+                      width={700 - ENTRY_X}
                       height={Y_STOP - Y_ENTRY}
                       className="fill-negative-soft stroke-negative/45"
                       strokeWidth="1.5"
@@ -305,15 +315,16 @@ export function HeroChart() {
                     <line
                       x1={ENTRY_X - 16}
                       y1={Y_ENTRY}
-                      x2="776"
+                      x2="716"
                       y2={Y_ENTRY}
                       stroke="var(--fg-muted)"
                       strokeWidth="1.5"
                       strokeDasharray="5 5"
                     />
                     <text
-                      x={ENTRY_X + 16}
+                      x={668}
                       y={Y_TARGET + 34}
+                      textAnchor="end"
                       className="fill-positive font-mono text-[22px] font-semibold"
                     >
                       {RISK_REWARD_LABEL}
@@ -398,6 +409,13 @@ export function HeroChart() {
       >
         <WinRateBadge />
       </motion.div>
+
+      {/* The copy side gets its own scrim. The terminal is drawn from real
+          data now, which makes it considerably busier than the generated
+          series it replaced — busy enough to compete with the headline sitting
+          on top of it. This quiets the left half and leaves the right, where
+          the glass badges are, alone. */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[62%] bg-gradient-to-r from-canvas via-canvas/88 to-transparent lg:block" />
 
       {/* Edge fades, so the terminal dissolves into the page rather than
           ending on a hard rectangle behind the copy. */}

@@ -70,6 +70,9 @@
   --glass-strong-sheen-bottom: rgb(255 255 255 / 1);
   --edge-highlight: rgb(255 255 255 / 1);
   --grid-line: rgb(0 0 0 / 0.03);
+  /* The hero's perspective floor. Accent-tinted so the horizon glow and the
+     grid read as one light source rather than two. */
+  --grid-floor: rgb(37 99 235 / 0.20);
 
   color-scheme: light;
 }
@@ -139,6 +142,7 @@
   --glass-strong-sheen-bottom: rgb(255 255 255 / 0.04);
   --edge-highlight: rgb(255 255 255 / 0.10);
   --grid-line: rgb(255 255 255 / 0.04);
+  --grid-floor: rgb(77 139 248 / 0.36);
 
   color-scheme: dark;
 }
@@ -389,6 +393,83 @@
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
   }
+}
+
+/* --------------------------------------------------------------------------
+   THE HERO FLOOR
+   A plane in perspective receding to a horizon, with the terminal hovering
+   above it. It exists to give the tilted panel something to be tilted
+   *against*: without a floor the panel reads as a skewed rectangle, with one
+   it reads as an object in space.
+
+   The drift is a CSS animation on `transform` alone, so it runs on the
+   compositor and keeps moving while the page is still hydrating — the moment
+   a requestAnimationFrame loop would be stuttering. It translates by exactly
+   one cell, which is why the loop is seamless at `linear`.
+
+   Nothing here is in the same 3D context as the terminal: the stage has its
+   own perspective and sits behind it, so the two never fight.
+   -------------------------------------------------------------------------- */
+.sv-floor {
+  position: absolute;
+  inset: 36% 0 0 0;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 520px;
+  perspective-origin: 50% 0%;
+}
+
+.sv-floor-tilt {
+  position: absolute;
+  inset: 0;
+  transform: rotateX(68deg);
+  transform-origin: 50% 0%;
+}
+
+.sv-floor-plane {
+  --sv-cell: 70px;
+  position: absolute;
+  inset-block-start: -30%;
+  inset-inline-start: -75%;
+  width: 250%;
+  height: 220%;
+  background-image:
+    linear-gradient(to right, var(--grid-floor) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-floor) 1px, transparent 1px);
+  background-size: var(--sv-cell) var(--sv-cell);
+}
+
+@keyframes sv-floor-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, var(--sv-cell), 0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sv-floor-plane {
+    animation: sv-floor-drift 7s linear infinite;
+    will-change: transform;
+  }
+}
+
+/* The horizon: one soft light where the floor meets the distance. */
+.sv-floor-glow {
+  position: absolute;
+  inset-block-start: -40px;
+  inset-inline-start: 50%;
+  width: min(820px, 190vw);
+  height: 180px;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(ellipse at center, var(--accent), transparent 66%);
+  opacity: 0.3;
+  filter: blur(48px);
+}
+
+/* The near field dissolves into the page rather than ending on an edge. */
+.sv-floor-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, transparent 0%, var(--canvas) 34%);
 }
 
 /* --------------------------------------------------------------------------
