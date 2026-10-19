@@ -6,6 +6,7 @@ import { SetupCard } from "@/features/setups/components/setup-card";
 import { SetupRow } from "@/features/setups/components/setup-row";
 import {
   CompareBar,
+  CompareHint,
   CompareProvider,
 } from "@/features/setups/components/compare-selection";
 import type { SetupFilters } from "@/features/setups/filters";
@@ -66,6 +67,7 @@ export function SetupGrid({
 
   return (
     <CompareProvider>
+      <CompareHint />
       {body}
       <CompareBar />
     </CompareProvider>

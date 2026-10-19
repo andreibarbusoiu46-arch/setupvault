@@ -97,18 +97,31 @@ export function CompareToggle({
       aria-checked={selected}
       aria-label={`Compare ${title}`}
       onClick={() => toggle(setupId, title)}
+      // Sized and weighted like the star it sits opposite. The first version
+      // was a bare 24px square on `bg-surface`, which on top of a dark chart
+      // screenshot was invisible — and an affordance nobody can find does not
+      // exist. It carries the same frosted plate the star does.
       className={cn(
-        "inline-flex size-6 items-center justify-center rounded-md border",
+        "inline-flex size-7 items-center justify-center rounded-lg border",
         "transition-[background-color,border-color,transform,color] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]",
         "active:scale-[0.92]",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         selected
           ? "border-accent bg-accent text-accent-fg"
-          : "border-border-strong bg-surface text-transparent [@media(hover:hover)and(pointer:fine)]:hover:border-accent/60",
+          : cn(
+              "border-black/[0.08] bg-white/75 text-fg-subtle backdrop-blur-xl",
+              "dark:border-white/[0.14] dark:bg-black/55",
+              "[@media(hover:hover)and(pointer:fine)]:hover:border-accent/60",
+              "[@media(hover:hover)and(pointer:fine)]:hover:text-fg",
+            ),
         className,
       )}
     >
-      <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />
+      <Check
+        className={cn("size-3.5", selected ? "opacity-100" : "opacity-45")}
+        strokeWidth={3}
+        aria-hidden="true"
+      />
     </button>
   );
 }
@@ -120,6 +133,24 @@ export function CompareToggle({
  * list it serves is scrolled while it is open. It only enters — there is no
  * exit animation — since dismissing it is immediate by design.
  */
+/**
+ * One line above the list saying what the ticks are for.
+ *
+ * It disappears the moment anything is picked: a hint that stays after you
+ * have understood it is noise.
+ */
+export function CompareHint() {
+  const { selected } = useCompare();
+  if (selected.length > 0) return null;
+
+  return (
+    <p className="mb-3 flex items-center gap-1.5 text-xs text-fg-subtle">
+      <GitCompareArrows className="size-3.5 shrink-0" aria-hidden="true" />
+      Tick two setups to put them side by side.
+    </p>
+  );
+}
+
 export function CompareBar() {
   const { selected, titles, clear, toggle } = useCompare();
 
