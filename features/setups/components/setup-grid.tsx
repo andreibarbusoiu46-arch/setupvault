@@ -4,6 +4,10 @@ import {
 } from "@/features/setups/components/animated-grid";
 import { SetupCard } from "@/features/setups/components/setup-card";
 import { SetupRow } from "@/features/setups/components/setup-row";
+import {
+  CompareBar,
+  CompareProvider,
+} from "@/features/setups/components/compare-selection";
 import type { SetupFilters } from "@/features/setups/filters";
 import type { SetupListItem } from "@/services/setups.service";
 
@@ -30,8 +34,8 @@ export function SetupGrid({
   const urlFor = (setup: SetupListItem) =>
     setup.screenshot_path ? (screenshotUrls[setup.screenshot_path] ?? null) : null;
 
-  if (view === "rows") {
-    return (
+  const body =
+    view === "rows" ? (
       <AnimatedGrid
         resetKey={resetKey}
         stagger={false}
@@ -46,11 +50,8 @@ export function SetupGrid({
           />
         ))}
       </AnimatedGrid>
-    );
-  }
-
-  return (
-    <AnimatedGrid resetKey={resetKey}>
+    ) : (
+      <AnimatedGrid resetKey={resetKey}>
       {setups.map((setup) => (
         <AnimatedGridItem key={setup.id}>
           <SetupCard
@@ -60,6 +61,13 @@ export function SetupGrid({
           />
         </AnimatedGridItem>
       ))}
-    </AnimatedGrid>
+      </AnimatedGrid>
+    );
+
+  return (
+    <CompareProvider>
+      {body}
+      <CompareBar />
+    </CompareProvider>
   );
 }

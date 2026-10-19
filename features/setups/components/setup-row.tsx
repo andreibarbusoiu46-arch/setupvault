@@ -14,6 +14,7 @@ import { calculateSetupScore } from "@/features/setup-score/utils/score";
 import { toScoreInput } from "@/features/setup-score/utils/from-setup";
 import { ScoreBadge } from "@/features/setup-score/components/score-badge";
 import { FavoriteButton } from "@/features/setups/components/favorite-button";
+import { CompareToggle } from "@/features/setups/components/compare-selection";
 import type { SetupListItem } from "@/services/setups.service";
 
 /**
@@ -49,7 +50,7 @@ export function SetupRow({
       <Link
         href={`${ROUTES.setups}/${setup.id}`}
         className={cn(
-          "flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-3 sm:gap-4 sm:px-4",
+          "flex items-center gap-3 rounded-xl border border-border bg-surface py-3 pl-10 pr-3 sm:gap-4 sm:pr-4",
           "transition-[background-color,border-color,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]",
           "[@media(hover:hover)and(pointer:fine)]:hover:border-border-strong",
           "[@media(hover:hover)and(pointer:fine)]:hover:bg-surface-hover",
@@ -106,7 +107,13 @@ export function SetupRow({
         </span>
       </Link>
 
-      {/* Outside the link, so starring a setup never navigates to it. */}
+      {/* Outside the link, so starring or picking a setup never navigates to
+          it. Compare stays visible at every width — it is the point of the row
+          view — while the star reveals on hover where there is a pointer. */}
+      <div className="absolute left-2 top-1/2 -translate-y-1/2">
+        <CompareToggle setupId={setup.id} title={setup.title} />
+      </div>
+
       <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100 max-sm:hidden">
         <FavoriteButton
           setupId={setup.id}

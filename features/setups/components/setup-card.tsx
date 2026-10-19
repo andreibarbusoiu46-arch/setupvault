@@ -14,6 +14,7 @@ import { calculateSetupScore } from "@/features/setup-score/utils/score";
 import { toScoreInput } from "@/features/setup-score/utils/from-setup";
 import { ScoreBadge } from "@/features/setup-score/components/score-badge";
 import { FavoriteButton } from "@/features/setups/components/favorite-button";
+import { CompareToggle } from "@/features/setups/components/compare-selection";
 import type { SetupListItem } from "@/services/setups.service";
 
 export function SetupCard({
@@ -98,6 +99,14 @@ export function SetupCard({
           </div>
         </div>
       </Link>
+
+      <div className="absolute left-2 top-2">
+        <CompareToggle
+          setupId={setup.id}
+          title={setup.title}
+          className="shadow-[0_2px_8px_-2px_rgb(0_0_0/0.5)]"
+        />
+      </div>
 
       <div className="absolute right-2 top-2">
         <FavoriteButton
