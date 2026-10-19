@@ -8,6 +8,19 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/services/profile.service";
 import type { ProfileRow } from "@/types/database";
 
+import type { Metadata } from "next";
+
+/**
+ * Nothing under here should ever appear in a search result: these pages render
+ * nothing without a session, so an indexed URL is a dead end for whoever
+ * follows it. robots.txt asks crawlers not to come; this tells the ones that
+ * come anyway not to keep what they find.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
+
+
 export default async function AppLayout({
   children,
 }: {

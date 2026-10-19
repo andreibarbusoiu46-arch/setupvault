@@ -3,6 +3,7 @@ import { Archivo } from "next/font/google";
 import { GeistMono } from "geist/font/mono";
 
 import { AppProviders } from "@/components/providers";
+import { getSiteUrl } from "@/lib/env";
 
 import "./globals.css";
 
@@ -26,6 +27,10 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
+  // Everything relative below resolves against this, including the generated
+  // share card. Without it Next emits relative OG URLs, which every crawler
+  // ignores — the single most common reason a link previews as a grey box.
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "SetupVault — Your Personal Trading Setup Library",
     template: "%s · SetupVault",
@@ -33,13 +38,27 @@ export const metadata: Metadata = {
   description:
     "Save every trading setup with its chart, thesis and outcome, then find it again in seconds. SetupVault is the searchable library for your own trading.",
   applicationName: "SetupVault",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "SetupVault — Your Personal Trading Setup Library",
     description:
       "Save every trading setup with its chart, thesis and outcome, then find it again in seconds.",
+    url: "/",
+    siteName: "SetupVault",
     type: "website",
+    locale: "en",
   },
-  robots: { index: true, follow: true },
+  twitter: {
+    card: "summary_large_image",
+    title: "SetupVault — Your Personal Trading Setup Library",
+    description:
+      "Save every trading setup with its chart, thesis and outcome, then find it again in seconds.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
 };
 
 export const viewport: Viewport = {

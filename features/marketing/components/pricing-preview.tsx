@@ -1,147 +1,199 @@
 import Link from "next/link";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
+import { TIER_POLICIES } from "@/lib/feature-access";
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "@/features/marketing/components/section";
-
-const PLANS = [
-  {
-    name: "Free",
-    price: "€0",
-    cadence: "while in early access",
-    description: "The full library, for the traders helping us shape it.",
-    features: [
-      "Unlimited setups",
-      "Screenshots, tags and notes",
-      "Favourites and filters",
-      "Your data, exportable",
-    ],
-    cta: "Start free",
-    available: true,
-  },
-  {
-    name: "Pro",
-    price: "—",
-    cadence: "pricing not set",
-    description:
-      "Deeper analysis of your own library: performance by strategy, by session, by tag.",
-    features: [
-      "Everything in Free",
-      "Performance breakdowns",
-      "Pattern insights",
-      "Priority support",
-    ],
-    cta: "Not available yet",
-    available: false,
-  },
-];
 
 /**
  * Pricing.
  *
- * There is no monthly/annual switch here on purpose. Pro has no price yet,
- * and a toggle whose only honest job would be to move a dash from one column
- * to another is a control that implies a commercial offer that does not
- * exist. It goes in the moment there are two real numbers to switch between.
+ * The numbers come from `TIER_POLICIES`, which is also what the application
+ * enforces at runtime. A pricing page that keeps its own copy of the limits
+ * drifts from the product within a release or two, and then the site is
+ * quietly lying about what you get.
  *
- * The depth is built from tokens rather than literal white, so the glass
- * reads correctly in both themes: translucent and bright on light, a thin
- * lifted pane on dark.
+ * Billing is not built yet, and the page says so rather than showing a
+ * checkout button that goes nowhere. The price is published because knowing
+ * what it will cost is the thing people actually want from this section.
  */
+
+const FREE = TIER_POLICIES.free;
+const PRO = TIER_POLICIES.pro;
+
+const PRO_PRICE = "€19";
+
+/** Everything the library does, on any plan. The product, not the upsell. */
+const LIBRARY = [
+  "Unlimited setups, with the screenshot attached",
+  "Strategies, tags, markets and sessions",
+  "Search and filters across your whole history",
+  "Analytics, trading calendar and setup score",
+  "Your data stays yours, and exports whenever you want",
+];
+
+/** What the paid plan adds. Each one maps to a real feature flag. */
+const PRO_ADDS = [
+  "Auto-tagging — the model proposes the structures, you approve them",
+  "Price levels read straight off the screenshot",
+  "Pattern recognition across your own trading history",
+  "Search your vault in plain language",
+];
+
+function Allowance({
+  value,
+  label,
+  emphasis = false,
+}: {
+  value: number | null;
+  label: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <p
+        className={cn(
+          "stat text-[1.75rem] leading-none",
+          emphasis ? "text-accent" : "text-fg",
+        )}
+      >
+        {value === null ? "∞" : value}
+      </p>
+      <p className="mt-1.5 text-[12.5px] leading-snug text-fg-subtle">{label}</p>
+    </div>
+  );
+}
+
 export function PricingPreview() {
   return (
     <Section id="pricing" className="border-t border-border">
       <SectionHeading
-        title="Free while we build the library"
-        description="Paid plans arrive when there is enough in the product to justify them. Early accounts keep access to everything they signed up with."
+        title="One price, when there is something to charge for"
+        description="The library itself is free and stays free. What costs money is the amount of model time you point at it."
       />
 
       <div className="mt-10 grid gap-4 sm:mt-12 lg:grid-cols-2">
-        {PLANS.map((plan) => (
-          <div
-            key={plan.name}
-            className={cn(
-              "glass relative flex flex-col rounded-2xl p-6 sm:p-7",
-              // The live plan is lifted; the unpriced one recedes without
-              // being so faint that it becomes unreadable on a phone.
-              plan.available
-                ? "ring-1 ring-accent/25"
-                : "opacity-80 dark:opacity-70",
-            )}
-          >
-            {plan.available ? (
-              <>
-                {/* A single soft highlight behind the card rather than a glow
-                    around it — depth, not a neon edge. */}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent"
-                />
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 -top-10 sm:-inset-x-6 -z-10 h-32 rounded-full bg-accent/10 blur-3xl"
-                />
-              </>
-            ) : null}
+        {/* ---------------------------------------------------------- Free */}
+        <div className="glass flex flex-col rounded-2xl p-6 backdrop-blur-xl sm:p-8">
+          <h3 className="text-[15px] font-medium tracking-tight text-fg">Free</h3>
 
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-sm font-medium text-fg">{plan.name}</h3>
-              {plan.available ? (
-                <Badge>
-                  <Sparkles className="size-3" aria-hidden="true" />
-                  Early access
-                </Badge>
-              ) : (
-                <Badge>Later</Badge>
-              )}
-            </div>
+          <p className="mt-5 flex flex-wrap items-baseline gap-x-2">
+            <span className="stat text-[2.75rem] leading-none text-fg">€0</span>
+            <span className="text-[13.5px] text-fg-subtle">forever</span>
+          </p>
 
-            <p className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="numeric text-3xl font-semibold text-fg sm:text-4xl">
-                {plan.price}
-              </span>
-              <span className="text-sm text-fg-subtle">{plan.cadence}</span>
-            </p>
+          <p className="mt-4 text-[14px] leading-relaxed text-fg-muted">
+            The whole library, with enough model time to see whether the reviews
+            tell you anything you did not already know.
+          </p>
 
-            <p className="mt-3 text-sm leading-relaxed text-fg-muted">
-              {plan.description}
-            </p>
-
-            <ul className="mt-6 flex flex-col gap-3">
-              {plan.features.map((feature) => (
-                <li
-                  key={feature}
-                  className="flex items-start gap-2.5 text-sm text-fg-muted"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-accent-soft"
-                  >
-                    <Check className="size-3 text-accent" />
-                  </span>
-                  {feature}
-                </li>
-              ))}
-            </ul>
-
-            {/* mt-auto keeps both buttons on the same line once the cards sit
-                side by side, whatever the copy length. */}
-            <div className="mt-7 pt-1 lg:mt-auto">
-              {plan.available ? (
-                <Button asChild size="lg" fullWidth>
-                  <Link href={ROUTES.signup}>{plan.cta}</Link>
-                </Button>
-              ) : (
-                <Button size="lg" fullWidth variant="secondary" disabled>
-                  {plan.cta}
-                </Button>
-              )}
-            </div>
+          <div className="mt-7 flex gap-8 border-y border-border py-5">
+            <Allowance
+              value={FREE.monthlyAnalyses}
+              label="setup reviews a month"
+            />
+            <Allowance
+              value={FREE.monthlyVisionAnalyses}
+              label="chart reads a month"
+            />
           </div>
-        ))}
+
+          <ul className="mt-6 flex flex-col gap-3">
+            {LIBRARY.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2.5 text-[13.5px] leading-snug text-fg-muted"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-px flex size-4 shrink-0 items-center justify-center rounded-full bg-accent-soft"
+                >
+                  <Check className="size-2.5 text-accent" strokeWidth={2.6} />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8 pt-1 lg:mt-auto">
+            <Button asChild size="lg" fullWidth variant="secondary">
+              <Link href={ROUTES.signup}>Start free</Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* ----------------------------------------------------------- Pro */}
+        <div className="relative flex flex-col rounded-2xl border border-accent/25 bg-surface p-6 shadow-[var(--shadow-elevated)] sm:p-8">
+          {/* One hairline of light along the top edge, not a glow around the
+              whole card. Depth, not neon. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-10 -top-px h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent"
+          />
+
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-[15px] font-medium tracking-tight text-fg">Pro</h3>
+            <span className="text-[12.5px] text-fg-subtle">billing opens soon</span>
+          </div>
+
+          <p className="mt-5 flex flex-wrap items-baseline gap-x-2">
+            <span className="stat text-[2.75rem] leading-none text-fg">
+              {PRO_PRICE}
+            </span>
+            <span className="text-[13.5px] text-fg-subtle">a month</span>
+          </p>
+
+          <p className="mt-4 text-[14px] leading-relaxed text-fg-muted">
+            For the point where the library is big enough that you stop reading
+            it yourself and start asking it questions.
+          </p>
+
+          <div className="mt-7 flex gap-8 border-y border-border py-5">
+            <Allowance
+              value={PRO.monthlyAnalyses}
+              label="setup reviews a month"
+              emphasis
+            />
+            <Allowance
+              value={PRO.monthlyVisionAnalyses}
+              label="chart reads a month"
+              emphasis
+            />
+          </div>
+
+          <p className="mt-6 text-[13.5px] font-medium tracking-tight text-fg">
+            Everything in Free, and:
+          </p>
+
+          <ul className="mt-3.5 flex flex-col gap-3">
+            {PRO_ADDS.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2.5 text-[13.5px] leading-snug text-fg-muted"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-px flex size-4 shrink-0 items-center justify-center rounded-full bg-accent-soft"
+                >
+                  <Check className="size-2.5 text-accent" strokeWidth={2.6} />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8 pt-1 lg:mt-auto">
+            <Button asChild size="lg" fullWidth>
+              <Link href={ROUTES.signup}>Start free</Link>
+            </Button>
+            <p className="mt-3 text-center text-[12.5px] leading-snug text-fg-subtle">
+              You cannot pay for this yet. Accounts made now start on Free, and
+              Pro becomes a choice the day billing is live.
+            </p>
+          </div>
+        </div>
       </div>
     </Section>
   );

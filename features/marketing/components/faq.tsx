@@ -2,7 +2,12 @@ import { Plus } from "lucide-react";
 
 import { Section, SectionHeading } from "@/features/marketing/components/section";
 
-const FAQS = [
+/**
+ * Exported so the structured data on the landing page is generated from the
+ * same array the page renders. Two copies of an FAQ drift within a release,
+ * and then the answer Google shows is one the site no longer gives.
+ */
+export const FAQS = [
   {
     question: "Is this a trading journal?",
     answer:
@@ -21,19 +26,19 @@ const FAQS = [
   {
     question: "What is actually available right now?",
     answer:
-      "Accounts, your profile, settings and the dashboard shell. Saving and searching setups is the feature we are building next, and it is why the free plan exists.",
+      "The library is live: saving setups with their screenshots, strategies and tags, search and filters across your whole history, the analytics and trading calendar, the setup score, and AI reviews of how a setup was put together. Paid plans and billing are what we are building next.",
   },
   {
     question: "Can I get my data out?",
     answer:
-      "Yes. It is your record of your own work. Export is part of the library release, and deleting your account removes every row you own.",
+      "Yes. It is your record of your own work. You can export it whenever you want, and deleting your account removes every row you own.",
   },
   {
     question: "What does it cost?",
     answer:
-      "Nothing today. When paid plans arrive, accounts created during early access keep the access they signed up with.",
+      "The library is free and stays free, including fifteen AI setup reviews and five chart reads a month. Pro will be 19 euro a month for a much larger monthly allowance plus auto-tagging, price-level extraction, pattern recognition and plain-language search. Billing is not open yet, so every account today is on the free plan.",
   },
-];
+] as const;
 
 export function Faq() {
   return (
