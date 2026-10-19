@@ -97,6 +97,7 @@ export default async function AnalyticsPage({
       <Header />
 
       <SetupsToolbar
+        showDensity={false}
         filters={filters}
         facets={facets}
         pathname={ROUTES.analytics}

@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpDown, Check, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  Check,
+  LayoutGrid,
+  Rows3,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +53,8 @@ interface ToolbarProps {
   pathname?: string;
   /** Sorting is meaningless on an aggregate view. */
   showSort?: boolean;
+  /** Off where there is no library grid to apply it to. */
+  showDensity?: boolean;
 }
 
 const DIRECTION_CHOICES = [
@@ -99,11 +109,66 @@ function Segmented<T extends string>({
   );
 }
 
+/**
+ * Cards or rows.
+ *
+ * A segmented control rather than a dropdown: there are two options, both fit
+ * on screen, and the current one should be visible without opening anything.
+ * Only the background moves — the icons never shift — so switching reads as
+ * the same control changing state rather than two controls swapping places.
+ */
+function DensityToggle({
+  value,
+  onChange,
+}: {
+  value: SetupFilters["view"];
+  onChange: (view: SetupFilters["view"]) => void;
+}) {
+  const options = [
+    { key: "cards" as const, icon: LayoutGrid, label: "Card view" },
+    { key: "rows" as const, icon: Rows3, label: "List view" },
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label="Library density"
+      className="flex items-center gap-0.5 rounded-lg border border-border-strong bg-surface-raised p-0.5"
+    >
+      {options.map((option) => {
+        const active = value === option.key;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            aria-pressed={active}
+            title={option.label}
+            onClick={() => onChange(option.key)}
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md",
+              "transition-[background-color,color,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              "active:scale-[0.94]",
+              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+              active
+                ? "bg-surface text-fg shadow-[0_1px_2px_rgb(0_0_0/0.25)]"
+                : "text-fg-subtle [@media(hover:hover)and(pointer:fine)]:hover:text-fg",
+            )}
+          >
+            <option.icon className="size-3.5" aria-hidden="true" />
+            <span className="sr-only">{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SetupsToolbar({
   filters,
   facets,
   pathname = "/setups",
   showSort = true,
+  showDensity = true,
 }: ToolbarProps) {
   const router = useRouter();
 
@@ -209,6 +274,15 @@ export function SetupsToolbar({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          ) : null}
+
+          {showDensity ? (
+            <DensityToggle
+              value={filters.view}
+              onChange={(view) =>
+                router.push(filtersHref({ ...filters, view }, pathname))
+              }
+            />
           ) : null}
         </div>
       </div>

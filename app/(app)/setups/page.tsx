@@ -113,6 +113,7 @@ export default async function SetupsPage({
             setups={page.rows}
             userId={user.id}
             screenshotUrls={screenshotUrls}
+            view={filters.view}
             resetKey={filtersHref(filters)}
           />
           <SetupsPagination

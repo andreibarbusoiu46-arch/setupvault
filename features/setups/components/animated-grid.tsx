@@ -11,17 +11,24 @@ import { riseItem, staggerContainer } from "@/lib/motion";
  */
 export function AnimatedGrid({
   resetKey,
+  className = "grid gap-4 sm:grid-cols-2 xl:grid-cols-3",
+  stagger = true,
   children,
 }: {
   resetKey: string;
+  className?: string;
+  /**
+   * Off for the row view. A stagger makes a filter change readable when there
+   * are a dozen cards; across sixty rows it is a second and a half of waiting
+   * in front of a list somebody opened in order to read it.
+   */
+  stagger?: boolean;
   children: React.ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
 
-  if (reduceMotion) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
-    );
+  if (reduceMotion || !stagger) {
+    return <div className={className}>{children}</div>;
   }
 
   return (
@@ -30,7 +37,7 @@ export function AnimatedGrid({
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      className={className}
     >
       {children}
     </motion.div>

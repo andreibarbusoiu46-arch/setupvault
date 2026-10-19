@@ -77,6 +77,13 @@ export const filtersSchema = z.object({
     .catch("newest")
     .default("newest"),
   page: z.coerce.number().int().min(1).max(10_000).catch(1).default(1),
+  /**
+   * How dense the library is drawn. It lives here rather than in local state
+   * so a link carries it: "look at my EURUSD breakouts" and "look at them as
+   * a list" are the same kind of request, and both should survive a paste
+   * into a message. Defaulting to `cards` keeps it out of a clean URL.
+   */
+  view: z.enum(["cards", "rows"]).catch("cards").default("cards"),
 });
 
 export type SetupFilters = z.infer<typeof filtersSchema>;
