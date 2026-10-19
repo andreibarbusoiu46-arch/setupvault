@@ -18,7 +18,6 @@ export function StatsGrid({ stats }: { stats: SetupStats }) {
         <MetricCard
           label="Total setups"
           value={String(stats.total)}
-          count={{ value: stats.total }}
           note={
             stats.total === 0
               ? "Nothing saved yet"
@@ -29,11 +28,6 @@ export function StatsGrid({ stats }: { stats: SetupStats }) {
         <MetricCard
           label="Win rate"
           value={stats.winRate === null ? "—" : `${stats.winRate}%`}
-          count={
-            stats.winRate === null
-              ? undefined
-              : { value: stats.winRate, suffix: "%" }
-          }
           note={
             stats.winRate === null
               ? "No decided results yet"
@@ -51,11 +45,6 @@ export function StatsGrid({ stats }: { stats: SetupStats }) {
         <MetricCard
           label="Average R:R"
           value={formatRatio(stats.averageRiskReward) ?? "—"}
-          count={
-            stats.averageRiskReward === null
-              ? undefined
-              : { value: stats.averageRiskReward, decimals: 2, suffix: "R" }
-          }
           note={
             stats.averageRiskReward === null
               ? "Needs a setup with levels"
@@ -67,7 +56,6 @@ export function StatsGrid({ stats }: { stats: SetupStats }) {
         <MetricCard
           label="Results recorded"
           value={String(decided + stats.breakeven)}
-          count={{ value: decided + stats.breakeven }}
           note={
             decided + stats.breakeven === 0
               ? "Outcomes appear once you log them"

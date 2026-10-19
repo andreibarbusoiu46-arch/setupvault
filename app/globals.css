@@ -49,6 +49,11 @@
 
   --radius: 1rem;
 
+  /* The product's one curve, matching EASE_OUT in lib/motion.ts. Fast out of
+     the gate, settling slowly — the built-in easings are too weak to read as
+     intentional. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Ambient light - subtle, elegant gradient blurs */
   --ambient-one: rgb(37 99 235 / 0.07);
   --ambient-two: rgb(79 70 229 / 0.07);
@@ -287,12 +292,17 @@
   font-weight: 600;
 }
 
+/* The label above a figure.
+   It used to be tracked-out uppercase in the accent colour, which meant the
+   word "Win rate" shouted louder than the number underneath it — on roughly
+   twenty screens at once. A label's whole job is to be read once and then
+   ignored while the eye goes to the value. Sentence case, quiet colour, and
+   the figure carries the weight. */
 .eyebrow {
-  font-size: 0.75rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: 0.78rem;
+  letter-spacing: -0.005em;
+  font-weight: 500;
+  color: var(--fg-subtle);
 }
 
 .glass {

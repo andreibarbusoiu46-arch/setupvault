@@ -124,17 +124,11 @@ export default async function AnalyticsPage({
             <MetricCard
               label="Setups"
               value={String(stats.total)}
-              count={{ value: stats.total }}
               note={`${stats.pending} still open`}
             />
             <MetricCard
               label="Win rate"
               value={formatWinRate(stats.winRate)}
-              count={
-                stats.winRate === null
-                  ? undefined
-                  : { value: stats.winRate, decimals: 1, suffix: "%" }
-              }
               note={
                 stats.resolved === 0
                   ? "Needs a resolved setup"
@@ -151,20 +145,12 @@ export default async function AnalyticsPage({
             <MetricCard
               label="Average R:R"
               value={formatRr(stats.avgRiskReward)}
-              count={
-                stats.avgRiskReward === null
-                  ? undefined
-                  : { value: stats.avgRiskReward, decimals: 2, suffix: "R" }
-              }
               note="Across setups with a ratio"
               tone={stats.avgRiskReward === null ? "default" : "accent"}
             />
             <MetricCard
               label="Average score"
               value={scores.average === null ? "—" : String(scores.average)}
-              count={
-                scores.average === null ? undefined : { value: scores.average }
-              }
               note={
                 scores.average === null
                   ? "Needs a setup with levels"

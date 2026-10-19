@@ -4,7 +4,7 @@ import { Library, Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatRatio } from "@/lib/risk-reward";
 import { ROUTES } from "@/lib/routes";
-import { formatRelativeTime } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import {
   DirectionBadge,
   ResultBadge,
@@ -50,7 +50,17 @@ export function SetupList({
           <li key={setup.id}>
             <Link
               href={`${ROUTES.setups}/${setup.id}`}
-              className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-hover"
+              // The row is the most-tapped target in the product. Hover is
+              // gated behind a real pointer — on a phone it fires on tap and
+              // sticks afterwards — and the press is what gives touch its
+              // feedback, since there is no hover there to give any.
+              className={cn(
+                "flex items-center gap-3 px-5 py-3.5",
+                "transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "[@media(hover:hover)and(pointer:fine)]:hover:bg-surface-hover",
+                "active:scale-[0.995] active:bg-surface-hover",
+                "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
+              )}
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-fg">{setup.title}</p>

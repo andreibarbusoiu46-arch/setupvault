@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/card";
-import { CountUp } from "@/components/ui/count-up";
 import { cn } from "@/lib/utils";
 
 export interface MetricCardProps {
@@ -9,8 +8,6 @@ export interface MetricCardProps {
   note?: string;
   tone?: "default" | "positive" | "negative" | "accent";
   className?: string;
-  /** When present the figure counts up to its real value on first view. */
-  count?: { value: number; decimals?: number; prefix?: string; suffix?: string };
 }
 
 const TONE_CLASS = {
@@ -23,6 +20,11 @@ const TONE_CLASS = {
 /**
  * One figure, one label, one line of context. Used for every headline number
  * in the product so they share weight, spacing and alignment.
+ *
+ * The figure no longer counts up. A count-up is an animation on the one thing
+ * the screen exists to show, on screens people open several times a day — it
+ * delays the reading it is decorating. It belongs on a landing page seen once,
+ * not on a dashboard.
  */
 export function MetricCard({
   label,
@@ -30,7 +32,6 @@ export function MetricCard({
   note,
   tone = "default",
   className,
-  count,
 }: MetricCardProps) {
   const empty = value === "—";
 
@@ -43,7 +44,7 @@ export function MetricCard({
           empty ? "text-fg-subtle" : TONE_CLASS[tone],
         )}
       >
-        {count ? <CountUp {...count} /> : value}
+        {value}
       </p>
       {note ? (
         <p className="mt-2 text-xs leading-relaxed text-fg-subtle">{note}</p>
