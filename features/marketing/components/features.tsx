@@ -2,7 +2,32 @@ import { Camera, Filter, Lock, ShieldCheck } from "lucide-react";
 
 import { RevealOnScroll } from "@/components/motion/reveal-on-scroll";
 import { Section, SectionHeading } from "@/features/marketing/components/section";
+import { calculateSetupScore } from "@/features/setup-score/utils/score";
+import { MAX_SCORE } from "@/features/setup-score/constants";
+import { LEVELS } from "@/features/marketing/data/nq-session";
 import { cn } from "@/lib/utils";
+
+/**
+ * The figure in the Setup Score cell, computed rather than typed.
+ *
+ * It used to be the string "88", while the product preview above said 87 for
+ * the same feature. Both are now produced by the engine, from the levels of
+ * the session the whole page is built around, so neither can drift from the
+ * other or from the app.
+ */
+const EXAMPLE_SCORE = calculateSetupScore({
+  direction: "long",
+  ticker: "NQ100",
+  market: "futures",
+  tradedOn: "2026-10-16",
+  entry: LEVELS.entry,
+  stopLoss: LEVELS.stop,
+  takeProfit: LEVELS.target,
+  strategy: "London breakout",
+  notesLength: 240,
+  hasScreenshot: true,
+  tagCount: 4,
+});
 
 /**
  * The bento.
@@ -293,12 +318,19 @@ export function Features() {
             <span className="flex size-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
               <ShieldCheck className="size-4" strokeWidth={1.7} aria-hidden="true" />
             </span>
-            <p className="stat mt-6 text-[2.75rem] leading-none text-fg">88</p>
+            <p className="stat mt-6 text-[2.75rem] leading-none text-fg">
+              {EXAMPLE_SCORE.score}
+              <span className="text-[1.25rem] text-fg-subtle">
+                /{MAX_SCORE}
+              </span>
+            </p>
             <p className="mt-3 text-[14px] font-medium tracking-tight text-fg">
               Setup score, before the outcome
             </p>
             <p className="mt-2 text-[13px] leading-relaxed text-fg-muted">
-              Deterministic and explainable. A good setup is allowed to lose.
+              It scores how completely you recorded the setup and whether the
+              levels cohere — not where the market is going next. A good setup
+              is allowed to lose.
             </p>
           </Cell>
         </RevealOnScroll>

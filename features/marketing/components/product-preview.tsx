@@ -1,233 +1,294 @@
-import { Search, Star, TrendingUp, Activity, CheckCircle2 } from "lucide-react";
+import { Search, Star } from "lucide-react";
+
 import { LogoMark } from "@/components/brand/logo";
+import { PRIMARY_NAV } from "@/lib/navigation";
+import { calculateRiskReward, formatRatio } from "@/lib/risk-reward";
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/features/marketing/components/reveal";
+import {
+  DirectionBadge,
+  ResultBadge,
+} from "@/features/setups/components/setup-badges";
+import { ScoreBadge } from "@/features/setup-score/components/score-badge";
+import { calculateSetupScore } from "@/features/setup-score/utils/score";
+import type { TradeDirection, TradeResult } from "@/types/database";
 
-// ============================================================================
-// MINI-CHART SVGs (Crisp, vector-based, uses exact theme colors)
-// ============================================================================
+/**
+ * The library, shown with the product's own code.
+ *
+ * This section used to be a hand-drawn imitation of the app: its own badge
+ * markup, its own nav labels typed out as strings, its own Setup Score of 87
+ * while the bento below it said 88, and three glass cards floating at three
+ * unrelated corners. Two different numbers for the same feature on one page is
+ * the sort of detail a careful reader notices, and once they notice it they
+ * stop believing any of the others.
+ *
+ * So nothing here is drawn twice. The sidebar is `PRIMARY_NAV`, the same array
+ * the real sidebar renders. The direction, result and score chips are the
+ * product's own components. The ratio comes from `calculateRiskReward` and the
+ * score from `calculateSetupScore`, both fed the levels below — so the figures
+ * on the marketing page are computed by the engine that computes them in the
+ * app, and the page cannot claim a score the product would not give.
+ *
+ * The rows deliberately mirror `SetupRow`: 16:9 thumbnail, title, ticker and
+ * direction and strategy beneath it, then fixed right-hand columns so the
+ * numbers line up down the list. What a visitor sees here is the screen they
+ * get.
+ *
+ * It is static by design — no hover states, no cursor-pointer, nothing that
+ * invites a click it cannot answer.
+ */
 
-const ChartOne = () => (
-  <svg viewBox="0 0 64 64" className="w-full h-full bg-surface-raised/50" preserveAspectRatio="none">
-    <line x1="0" y1="45" x2="64" y2="45" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" className="text-border-strong/50" />
-    {/* Down candle */}
-    <line x1="16" y1="20" x2="16" y2="45" stroke="var(--negative)" strokeWidth="1.5" />
-    <rect x="13" y="25" width="6" height="15" rx="1" className="fill-negative" />
-    {/* Sweep candle (Pin bar) */}
-    <line x1="32" y1="35" x2="32" y2="58" stroke="var(--positive)" strokeWidth="1.5" />
-    <rect x="29" y="35" width="6" height="10" rx="1" className="fill-positive" />
-    {/* Breakout candle */}
-    <line x1="48" y1="10" x2="48" y2="40" stroke="var(--positive)" strokeWidth="1.5" />
-    <rect x="45" y="15" width="6" height="20" rx="1" className="fill-positive" />
-  </svg>
-);
+/* -------------------------------------------------------------------------- */
+/* Thumbnails                                                                 */
+/* -------------------------------------------------------------------------- */
 
-const ChartTwo = () => (
-  <svg viewBox="0 0 64 64" className="w-full h-full bg-surface-raised/50" preserveAspectRatio="none">
-    <line x1="0" y1="20" x2="64" y2="20" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" className="text-border-strong/50" />
-    {/* Up candle */}
-    <line x1="16" y1="15" x2="16" y2="40" stroke="var(--positive)" strokeWidth="1.5" />
-    <rect x="13" y="25" width="6" height="10" rx="1" className="fill-positive" />
-    {/* Failed breakout (Wick above resistance) */}
-    <line x1="32" y1="8" x2="32" y2="30" stroke="var(--negative)" strokeWidth="1.5" />
-    <rect x="29" y="20" width="6" height="10" rx="1" className="fill-negative" />
-    {/* Drop candle */}
-    <line x1="48" y1="25" x2="48" y2="55" stroke="var(--negative)" strokeWidth="1.5" />
-    <rect x="45" y="28" width="6" height="22" rx="1" className="fill-negative" />
-  </svg>
-);
+function Sweep() {
+  return (
+    <svg viewBox="0 0 80 45" className="block size-full" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" y1="30" x2="80" y2="30" strokeWidth="1" strokeDasharray="3 3" className="stroke-border-strong" />
+      <line x1="20" y1="8" x2="20" y2="32" strokeWidth="1.4" className="stroke-negative" />
+      <rect x="17" y="12" width="6" height="14" rx="1" className="fill-negative" />
+      <line x1="40" y1="22" x2="40" y2="42" strokeWidth="1.4" className="stroke-positive" />
+      <rect x="37" y="24" width="6" height="8" rx="1" className="fill-positive" />
+      <line x1="60" y1="4" x2="60" y2="28" strokeWidth="1.4" className="stroke-positive" />
+      <rect x="57" y="7" width="6" height="16" rx="1" className="fill-positive" />
+    </svg>
+  );
+}
 
-const ChartThree = () => (
-  <svg viewBox="0 0 64 64" className="w-full h-full bg-surface-raised/50" preserveAspectRatio="none">
-    {/* Moving Average Line */}
-    <path d="M 0 55 C 20 50, 40 30, 64 15" fill="none" stroke="var(--accent)" strokeWidth="1.5" className="opacity-40" />
-    {/* Momentum up 1 */}
-    <line x1="16" y1="35" x2="16" y2="55" stroke="var(--positive)" strokeWidth="1.5" />
-    <rect x="13" y="40" width="6" height="12" rx="1" className="fill-positive" />
-    {/* Momentum up 2 */}
-    <line x1="32" y1="20" x2="32" y2="45" stroke="var(--positive)" strokeWidth="1.5" />
-    <rect x="29" y="25" width="6" height="15" rx="1" className="fill-positive" />
-    {/* Momentum up 3 */}
-    <line x1="48" y1="5" x2="48" y2="28" stroke="var(--positive)" strokeWidth="1.5" />
-    <rect x="45" y="8" width="6" height="18" rx="1" className="fill-positive" />
-  </svg>
-);
+function FailedBreak() {
+  return (
+    <svg viewBox="0 0 80 45" className="block size-full" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" y1="13" x2="80" y2="13" strokeWidth="1" strokeDasharray="3 3" className="stroke-border-strong" />
+      <line x1="20" y1="11" x2="20" y2="30" strokeWidth="1.4" className="stroke-positive" />
+      <rect x="17" y="17" width="6" height="9" rx="1" className="fill-positive" />
+      <line x1="40" y1="4" x2="40" y2="24" strokeWidth="1.4" className="stroke-negative" />
+      <rect x="37" y="14" width="6" height="8" rx="1" className="fill-negative" />
+      <line x1="60" y1="18" x2="60" y2="41" strokeWidth="1.4" className="stroke-negative" />
+      <rect x="57" y="20" width="6" height="17" rx="1" className="fill-negative" />
+    </svg>
+  );
+}
 
-// ============================================================================
+function Drive() {
+  return (
+    <svg viewBox="0 0 80 45" className="block size-full" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M 0 38 C 24 34, 50 20, 80 9" fill="none" strokeWidth="1.3" className="stroke-accent opacity-40" />
+      <line x1="20" y1="24" x2="20" y2="40" strokeWidth="1.4" className="stroke-positive" />
+      <rect x="17" y="28" width="6" height="9" rx="1" className="fill-positive" />
+      <line x1="40" y1="14" x2="40" y2="32" strokeWidth="1.4" className="stroke-positive" />
+      <rect x="37" y="17" width="6" height="11" rx="1" className="fill-positive" />
+      <line x1="60" y1="3" x2="60" y2="20" strokeWidth="1.4" className="stroke-positive" />
+      <rect x="57" y="5" width="6" height="13" rx="1" className="fill-positive" />
+    </svg>
+  );
+}
 
-const SAMPLE = [
-  { 
-    title: "London sweep into daily FVG", 
-    ticker: "EURUSD", 
-    long: true, 
-    rr: "3.20R", 
-    result: "Win", 
-    strategy: "Liquidity sweep", 
+/* -------------------------------------------------------------------------- */
+/* Three records, with every figure derived from their own levels             */
+/* -------------------------------------------------------------------------- */
+
+interface Sample {
+  title: string;
+  ticker: string;
+  direction: TradeDirection;
+  strategy: string;
+  result: TradeResult;
+  entry: number;
+  stopLoss: number;
+  takeProfit: number;
+  tradedOn: string;
+  tagCount: number;
+  notesLength: number;
+  starred: boolean;
+  Thumb: () => React.ReactElement;
+}
+
+const SAMPLES: Sample[] = [
+  {
+    title: "London sweep into daily FVG",
+    ticker: "EURUSD",
+    direction: "long",
+    strategy: "Liquidity sweep",
+    result: "win",
+    entry: 1.0842,
+    stopLoss: 1.0818,
+    takeProfit: 1.0918,
+    tradedOn: "2026-10-14",
+    tagCount: 2,
+    notesLength: 15,
     starred: true,
-    Chart: ChartOne
+    Thumb: Sweep,
   },
-  { 
-    title: "Failed breakout, prior week high", 
-    ticker: "BTCUSD", 
-    long: false, 
-    rr: "2.10R", 
-    result: "Loss", 
-    strategy: "Range fade", 
+  {
+    title: "Failed breakout, prior week high",
+    ticker: "BTCUSD",
+    direction: "short",
+    strategy: "Range fade",
+    result: "loss",
+    entry: 71_400,
+    stopLoss: 72_050,
+    takeProfit: 70_620,
+    tradedOn: "2026-10-13",
+    // Logged in a hurry: no tags, nothing written down, and a target barely
+    // more than a stop away. Three rows that all score A+ would say the score
+    // does not discriminate, which is the opposite of the claim being made.
+    // This one scores what a thin record deserves.
+    tagCount: 0,
+    notesLength: 0,
     starred: false,
-    Chart: ChartTwo
+    Thumb: FailedBreak,
   },
-  { 
-    title: "Opening drive continuation", 
-    ticker: "NAS100", 
-    long: true, 
-    rr: "4.00R", 
-    result: "Win", 
-    strategy: "Momentum", 
+  {
+    title: "Opening drive continuation",
+    ticker: "NQ100",
+    direction: "long",
+    strategy: "Momentum",
+    result: "win",
+    entry: 29_995,
+    stopLoss: 29_940,
+    takeProfit: 30_225,
+    tradedOn: "2026-10-16",
+    tagCount: 5,
+    notesLength: 340,
     starred: true,
-    Chart: ChartThree
+    Thumb: Drive,
   },
 ];
 
-const NAV = ["Dashboard", "My Setups", "Favorites", "Analytics"];
+/** The same pipeline a real row runs: levels in, ratio and score out. */
+function derive(sample: Sample) {
+  const geometry = calculateRiskReward({
+    direction: sample.direction,
+    entry: sample.entry,
+    stopLoss: sample.stopLoss,
+    takeProfit: sample.takeProfit,
+  });
+
+  const score = calculateSetupScore({
+    direction: sample.direction,
+    ticker: sample.ticker,
+    market: "forex",
+    tradedOn: sample.tradedOn,
+    entry: sample.entry,
+    stopLoss: sample.stopLoss,
+    takeProfit: sample.takeProfit,
+    strategy: sample.strategy,
+    notesLength: sample.notesLength,
+    hasScreenshot: true,
+    tagCount: sample.tagCount,
+  });
+
+  return {
+    ratio: formatRatio(geometry.ok ? geometry.ratio : null),
+    score,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
 
 export function ProductPreview() {
   return (
-    <section className="relative mx-auto w-full max-w-5xl px-5 pb-24 sm:px-8 mt-12">
-      
-      {/* Floating Card: Setup Score */}
-      <Reveal delay={0.4} className="absolute -top-6 -left-4 sm:-left-12 z-20 hidden md:block">
-        <div className="glass backdrop-blur-xl flex items-center gap-3 rounded-xl px-4 py-3 shadow-floating">
-          <div className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
-            <Activity className="size-5" />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-fg-subtle">Setup Score</p>
-            <p className="stat text-xl text-fg">87<span className="text-sm text-fg-muted">/100</span></p>
-          </div>
-        </div>
-      </Reveal>
-
-      {/* Floating Card: Weekly Stats */}
-      <Reveal delay={0.5} className="absolute -bottom-8 -right-4 sm:-right-8 z-20 hidden md:block">
-        <div className="glass backdrop-blur-xl flex items-center gap-3 rounded-xl px-4 py-3 shadow-floating">
-          <div className="flex size-10 items-center justify-center rounded-full bg-positive-soft text-positive">
-            <CheckCircle2 className="size-5" />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-fg-subtle">This Week</p>
-            <p className="text-sm font-medium text-fg"><span className="stat">12</span> Setups Logged</p>
-          </div>
-        </div>
-      </Reveal>
-
-      {/* Floating Card: RR */}
-      <Reveal delay={0.6} className="absolute top-1/2 -right-4 sm:-right-10 z-20 hidden lg:block transform -translate-y-1/2">
-        <div className="glass backdrop-blur-xl flex flex-col gap-1 rounded-xl px-4 py-3 shadow-floating">
-          <p className="text-[11px] font-medium text-fg-subtle">Avg RR</p>
-          <div className="flex items-center gap-1.5 text-positive">
-            <TrendingUp className="size-4" />
-            <p className="stat text-lg">1:3.2</p>
-          </div>
-        </div>
-      </Reveal>
-
+    <section className="relative mx-auto mt-12 w-full max-w-5xl px-5 pb-24 sm:px-8">
       <Reveal delay={0.3}>
-        <div className="glass backdrop-blur-xl overflow-hidden rounded-[1.25rem] border border-border shadow-elevated transition-transform hover:scale-[1.01] duration-700">
+        <div className="glass overflow-hidden rounded-[1.25rem] border border-border shadow-elevated backdrop-blur-xl">
           <div className="grid grid-cols-1 bg-surface md:grid-cols-[200px_minmax(0,1fr)]">
-            
-            {/* Sidebar chrome */}
-            <div className="hidden flex-col gap-1 border-r border-border bg-canvas-subtle/40 p-4 md:flex">
+            {/* Sidebar chrome, from the array the real sidebar reads. */}
+            <div className="hidden flex-col gap-0.5 border-r border-border bg-canvas-subtle/40 p-4 md:flex">
               <div className="mb-6 flex items-center gap-2.5 px-2">
                 <LogoMark className="size-6 text-accent" />
-                <span className="text-sm font-semibold text-fg tracking-tight">
+                <span className="text-sm font-semibold tracking-tight text-fg">
                   SetupVault
                 </span>
               </div>
-              {NAV.map((item, index) => (
-                <span
-                  key={item}
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-[13px] font-medium transition-colors cursor-default",
-                    index === 1
-                      ? "bg-surface text-accent shadow-sm ring-1 ring-border-strong/50"
-                      : "text-fg-subtle hover:text-fg hover:bg-surface-hover",
-                  )}
-                >
-                  {item}
-                </span>
-              ))}
+
+              {PRIMARY_NAV.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <span
+                    key={item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]",
+                      index === 1 ? "bg-surface-hover text-fg" : "text-fg-muted",
+                    )}
+                  >
+                    <Icon
+                      className={cn("size-4 shrink-0", index === 1 && "text-accent")}
+                      aria-hidden="true"
+                    />
+                    {item.label}
+                  </span>
+                );
+              })}
             </div>
 
-            <div className="min-w-0 grid-surface">
+            <div className="grid-surface min-w-0">
               {/* Top bar */}
-              <div className="flex items-center justify-between gap-3 border-b border-border bg-surface/50 px-5 py-4 backdrop-blur-md">
-                <div className="flex h-9 w-64 items-center gap-2.5 rounded-md border border-border bg-surface-raised px-3 text-[13px] text-fg-muted shadow-sm transition-colors hover:border-border-strong">
-                  <Search className="size-4" aria-hidden="true" />
-                  Search setups...
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-surface/50 px-4 py-3.5 sm:px-5">
+                <div className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-md border border-border bg-surface-raised px-3 text-[13px] text-fg-subtle sm:max-w-64">
+                  <Search className="size-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Search your setups</span>
                 </div>
-                <div className="hidden sm:flex items-center gap-3">
-                  <span className="rounded-md bg-accent px-4 py-2 text-[13px] font-semibold text-accent-fg shadow-sm transition-transform hover:-translate-y-0.5 cursor-pointer">
-                    New Setup
-                  </span>
-                </div>
+                <span className="shrink-0 rounded-md bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-fg sm:px-4">
+                  New setup
+                </span>
               </div>
 
-              {/* Setup rows with CLEAR VECTOR CHARTS */}
+              {/* Rows, mirroring SetupRow's columns exactly. */}
               <div className="divide-y divide-border bg-surface/40">
-                {SAMPLE.map((setup) => {
-                  const ChartIcon = setup.Chart;
+                {SAMPLES.map((sample) => {
+                  const { ratio, score } = derive(sample);
+                  const Thumb = sample.Thumb;
+
                   return (
                     <div
-                      key={setup.title}
-                      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-hover/60 cursor-pointer group"
+                      key={sample.title}
+                      className="flex items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-5"
                     >
-                      {/* Vector Chart Thumbnail */}
-                      <div className="relative flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-surface shadow-sm overflow-hidden group-hover:shadow-md transition-all duration-300">
-                        <div className="w-full h-full transition-transform duration-500 group-hover:scale-110">
-                          <ChartIcon />
-                        </div>
+                      <div className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-md border border-border bg-canvas-subtle sm:w-20">
+                        <Thumb />
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-fg group-hover:text-accent transition-colors">
-                          {setup.title}
+                        <p className="truncate text-sm font-medium text-fg">
+                          {sample.title}
                         </p>
-                        <p className="mt-1 flex items-center gap-2.5 text-[13px] text-fg-subtle">
-                          <span className="numeric font-medium text-fg-muted rounded bg-border/40 px-1.5 py-0.5">
-                            {setup.ticker}
+                        <p className="mt-1 flex items-center gap-2 truncate text-xs text-fg-subtle">
+                          <span className="numeric shrink-0 text-fg-muted">
+                            {sample.ticker}
                           </span>
-                          <span
-                            className={cn("font-medium", setup.long ? "text-positive" : "text-negative")}
-                          >
-                            {setup.long ? "Long" : "Short"}
-                          </span>
-                          <span className="hidden sm:inline before:content-['•'] before:mr-2.5 before:text-border-strong">
-                            {setup.strategy}
-                          </span>
+                          <DirectionBadge
+                            direction={sample.direction}
+                            variant="text"
+                          />
+                          <span className="truncate">{sample.strategy}</span>
                         </p>
                       </div>
 
-                      <span className="numeric hidden text-sm font-medium text-fg-muted sm:block">
-                        {setup.rr}
+                      <span className="numeric w-12 shrink-0 text-right text-xs text-fg-muted sm:w-14">
+                        {ratio ?? "—"}
                       </span>
+
                       <Star
                         className={cn(
-                          "size-4 shrink-0 mx-2",
-                          setup.starred
+                          "hidden size-4 shrink-0 sm:block",
+                          sample.starred
                             ? "fill-accent text-accent"
-                            : "text-border-strong group-hover:text-fg-subtle transition-colors",
+                            : "text-border-strong",
                         )}
                         aria-hidden="true"
                       />
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold shadow-sm",
-                          setup.result === "Win"
-                            ? "bg-positive-soft text-positive border border-positive/20"
-                            : "bg-negative-soft text-negative border border-negative/20",
-                        )}
-                      >
-                        {setup.result}
+
+                      <span className="flex shrink-0 items-center gap-2">
+                        {score.scorable ? (
+                          <ScoreBadge
+                            score={score.score}
+                            grade={score.grade}
+                            className="hidden sm:inline-flex"
+                          />
+                        ) : null}
+                        <ResultBadge result={sample.result} />
                       </span>
                     </div>
                   );
@@ -236,6 +297,15 @@ export function ProductPreview() {
             </div>
           </div>
         </div>
+      </Reveal>
+
+      {/* Said plainly, because the alternative is letting a visitor assume
+          these are somebody's real trades. */}
+      <Reveal delay={0.4}>
+        <p className="mx-auto mt-5 max-w-xl text-center text-[13px] leading-relaxed text-fg-subtle">
+          The library at scanning density, with sample records. Every ratio and
+          score above is computed by the same engine the app runs.
+        </p>
       </Reveal>
     </section>
   );

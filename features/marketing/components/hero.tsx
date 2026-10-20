@@ -78,7 +78,7 @@ export function Hero() {
                   variant="outline"
                   className="h-12 px-7 text-[15px]"
                 >
-                  <Link href="#capture">See how it works</Link>
+                  <Link href="#how">See how it works</Link>
                 </Button>
               </div>
             </Reveal>

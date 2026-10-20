@@ -8,12 +8,8 @@ import { Hero } from "@/features/marketing/components/hero";
 import { MarketingNav } from "@/features/marketing/components/marketing-nav";
 import { PricingPreview } from "@/features/marketing/components/pricing-preview";
 import { ProductPreview } from "@/features/marketing/components/product-preview";
-import {
-  AiReview,
-  Analyze,
-  Capture,
-  Organize,
-} from "@/features/marketing/components/story";
+import { Problem } from "@/features/marketing/components/problem";
+import { AiReview, HowItWorks } from "@/features/marketing/components/story";
 import { BuildingInPublic } from "@/features/marketing/components/building-in-public";
 
 /**
@@ -86,10 +82,11 @@ export default async function LandingPage() {
         <Hero />
         <ProductPreview />
 
-        {/* The product story, in the order a trader actually uses it. */}
-        <Capture />
-        <Organize />
-        <Analyze />
+        {/* Name the problem before showing any more of the product: the four
+            steps below only mean something to a reader who has agreed there is
+            something to fix. */}
+        <Problem />
+        <HowItWorks />
         <AiReview />
 
         <Features />

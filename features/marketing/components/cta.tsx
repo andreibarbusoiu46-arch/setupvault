@@ -29,7 +29,7 @@ export function Cta() {
               <Link href={ROUTES.signup}>Start free</Link>
             </Button>
             <Button asChild size="lg" variant="secondary">
-              <Link href="#capture">See how it works</Link>
+              <Link href="#how">See how it works</Link>
             </Button>
           </div>
         </div>
