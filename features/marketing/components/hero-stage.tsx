@@ -122,6 +122,7 @@ const PINS = [
     // position on the plane once the plane is rotated.
     anchor: { x: 372, y: 182 },
     z: 78,
+    narrow: true,
   },
   {
     index: 46,
@@ -139,6 +140,10 @@ const PINS = [
     }),
     anchor: { x: 724, y: 150 },
     z: 44,
+    // Two 232px cards cannot both be legible on a 390px plane. The loser
+    // steps aside there and the winner gets the room to be readable; both
+    // return as soon as there is width for them.
+    narrow: false,
   },
 ] as const;
 
@@ -149,8 +154,16 @@ const PINS = [
  * and two shadows. No backdrop-filter — see the note at the top of the file.
  */
 const GLASS = cn(
-  "rounded-xl border border-white/[0.14] bg-[#090b11]/95",
-  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.15),0_2px_6px_-2px_rgb(0_0_0/0.8),0_28px_60px_-24px_rgb(0_0_0/0.95)]",
+  "rounded-xl border",
+  // Light: a raised white card with a grey hairline and a soft shadow.
+  // Dark: near-black glass with a specular top edge and a much deeper one.
+  // The specular line is the detail that reads as a bevel, and it has to
+  // invert — a white inset highlight on a white card is invisible, and a
+  // grey one on black is dirt.
+  "border-black/[0.08] bg-white",
+  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.9),0_1px_2px_-1px_rgb(16_24_40/0.2),0_18px_40px_-18px_rgb(16_24_40/0.35)]",
+  "dark:border-white/[0.14] dark:bg-[#090b11]/95",
+  "dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.15),0_2px_6px_-2px_rgb(0_0_0/0.8),0_28px_60px_-24px_rgb(0_0_0/0.95)]",
 );
 
 /** A real candlestick thumbnail with the trade's own levels drawn over it. */
@@ -173,7 +186,7 @@ function Thumb({
 
   return (
     <svg viewBox="0 0 112 52" className="block h-[42px] w-[92px]" aria-hidden="true">
-      <rect x="0" y="0" width="112" height="52" rx="5" fill="#05070b" />
+      <rect x="0" y="0" width="112" height="52" rx="5" className="fill-canvas-subtle" />
       {/* Reward above the entry, risk below it. */}
       <rect x="0" y={y(target)} width="112" height={Math.max(y(entry) - y(target), 1)} fill="#10b981" opacity="0.10" />
       <rect x="0" y={y(entry)} width="112" height={Math.max(y(stop) - y(entry), 1)} fill="#ef4444" opacity="0.12" />
@@ -203,25 +216,25 @@ function SetupCard({ pin }: { pin: (typeof PINS)[number] }) {
       <div className="flex items-center gap-2.5">
         <Thumb bars={pin.bars} won={pin.won} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-semibold tracking-tight text-white">
+          <p className="truncate text-[12px] font-semibold tracking-tight text-fg">
             {pin.pair}
           </p>
-          <p className="truncate text-[10.5px] text-white/45">{pin.play}</p>
+          <p className="truncate text-[10.5px] text-fg-subtle">{pin.play}</p>
         </div>
       </div>
 
-      <div className="mt-2.5 flex items-center gap-1.5 border-t border-white/[0.08] pt-2.5">
+      <div className="mt-2.5 flex items-center gap-1.5 border-t border-border pt-2.5">
         <span
           className={cn(
             "numeric rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold",
             pin.won
-              ? "bg-[#10b981]/15 text-[#34d399]"
-              : "bg-[#ef4444]/15 text-[#f87171]",
+              ? "bg-[#10b981]/15 text-[#047857] dark:text-[#34d399]"
+              : "bg-[#ef4444]/15 text-[#b91c1c] dark:text-[#f87171]",
           )}
         >
           {pin.r} {pin.won ? "Win" : "Loss"}
         </span>
-        <span className="numeric ml-auto rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10.5px] text-white/70">
+        <span className="numeric ml-auto rounded-md bg-surface-hover px-1.5 py-0.5 text-[10.5px] text-fg-muted">
           {pin.score.grade} · {pin.score.score}
         </span>
       </div>
@@ -240,25 +253,30 @@ const WEEKDAYS = [
 function SessionPanel() {
   return (
     <div className={cn(GLASS, "w-full p-3.5")}>
-      <p className="text-[11px] font-semibold tracking-tight text-white">
+      <p className="text-[11px] font-semibold tracking-tight text-fg">
         By weekday
       </p>
-      <p className="mt-0.5 text-[9.5px] text-white/40">Net R, last 60 setups</p>
+      <p className="mt-0.5 text-[9.5px] text-fg-subtle">Net R, last 60 setups</p>
 
       <ul className="mt-3 flex flex-col gap-2">
         {WEEKDAYS.map((row) => (
           <li key={row.day}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-[10px] text-white/55">{row.day}</span>
+              <span className="truncate text-[10px] text-fg-muted">{row.day}</span>
               <span
-                className="numeric text-[10px] font-semibold"
-                style={{ color: row.up ? "#34d399" : "#f87171" }}
+                className="numeric text-[10px] font-semibold text-[color:var(--hs-pos)] dark:text-[color:var(--hs-pos-d)]"
+                style={{
+                  // One variable per row so light and dark each get a value
+                  // that actually passes contrast on their own background.
+                  ["--hs-pos" as string]: row.up ? "#047857" : "#b91c1c",
+                  ["--hs-pos-d" as string]: row.up ? "#34d399" : "#f87171",
+                }}
               >
                 {row.up ? "+" : "−"}
                 {(row.value / 20).toFixed(1)}R
               </span>
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]">
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/[0.07]">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -336,7 +354,7 @@ export function HeroStage({ className }: { className?: string }) {
         {/* Layer 1 — pushed back behind the glass, and softened, so the eye
             reads it as further away rather than merely smaller. */}
         <div
-          className="absolute left-[0.5%] top-[30%] hidden w-[20.5%] opacity-80 blur-[0.6px] lg:block"
+          className="absolute left-[0.5%] top-[30%] hidden w-[20.5%] opacity-80 blur-[0.6px] md:block"
           style={{ transform: "translateZ(-40px)" }}
         >
           <SessionPanel />
@@ -446,19 +464,29 @@ export function HeroStage({ className }: { className?: string }) {
         </div>
 
         {/* Layer 3 — the setups, forward of everything. */}
+        {/* The setups, forward of everything, at every width.
+
+            They used to vanish below `md` and reappear as a plain stacked
+            list under the copy, which threw away the whole point of the
+            composition — a card pinned to the exact trade that produced that
+            part of the curve. A 232px card simply does not fit a 390px
+            phone, so it is scaled rather than hidden. The scale sits on an
+            inner wrapper: the outer box keeps its unscaled height, so
+            translate(-100%) still lands the card's bottom edge precisely on
+            the anchor the leader line arrives at. */}
         {PINS.map((pin) => (
           <div
             key={pin.index}
-            className="absolute hidden md:block"
+            className={cn("absolute", !pin.narrow && "hidden sm:block")}
             style={{
               left: `${(pin.anchor.x / VIEW_W) * 100}%`,
               top: `${(pin.anchor.y / VIEW_H) * 100}%`,
-              // -100% on Y puts the card's bottom edge on the anchor, which
-              // is where the leader line arrives.
               transform: `translateZ(${pin.z}px) translate(-50%, -100%)`,
             }}
           >
-            <SetupCard pin={pin} />
+            <div className="origin-bottom scale-[0.72] sm:scale-[0.76] lg:scale-100">
+              <SetupCard pin={pin} />
+            </div>
           </div>
         ))}
       </motion.div>
@@ -466,13 +494,3 @@ export function HeroStage({ className }: { className?: string }) {
   );
 }
 
-/** The same two setups, stacked, for widths with no room for a 3D scene. */
-export function HeroStageCards({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex flex-col gap-2.5", className)} aria-hidden="true">
-      {PINS.map((pin) => (
-        <SetupCard key={pin.index} pin={pin} />
-      ))}
-    </div>
-  );
-}

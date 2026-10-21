@@ -171,15 +171,7 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
             <li key={link.href}>
               <a
                 href={link.href}
-                className={cn(
-                  "relative rounded-lg px-3 py-2 text-[13.5px] transition-colors duration-300",
-                  // The hero is black in both themes, so until the bar has
-                  // something of its own behind it the links are light. Past
-                  // the hero they go back to the palette.
-                  scrolled
-                    ? "text-fg-muted hover:text-fg"
-                    : "text-white/55 hover:text-white",
-                )}
+                className="relative rounded-lg px-3 py-2 text-[13.5px] text-fg-muted transition-colors duration-300 hover:text-fg"
               >
                 {link.label}
               </a>
@@ -197,12 +189,7 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
             <>
               <Link
                 href={ROUTES.login}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-[13.5px] transition-colors duration-300",
-                  scrolled
-                    ? "text-fg-muted hover:text-fg"
-                    : "text-white/60 hover:text-white",
-                )}
+                className="rounded-lg px-3 py-2 text-[13.5px] text-fg-muted transition-colors duration-300 hover:text-fg"
               >
                 Sign in
               </Link>
@@ -231,8 +218,7 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
               "border border-black/[0.07] bg-black/[0.03] backdrop-blur-2xl",
               "dark:border-white/[0.07] dark:bg-white/[0.03]",
               "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.5)] dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]",
-              scrolled || open ? "text-fg-muted hover:text-fg" : "text-white/70 hover:text-white",
-              "transition-colors duration-300",
+              "text-fg-muted transition-colors duration-300 hover:text-fg",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             )}
           >

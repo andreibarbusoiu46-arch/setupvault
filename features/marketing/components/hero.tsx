@@ -2,15 +2,20 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
-import {
-  HeroStage,
-  HeroStageCards,
-} from "@/features/marketing/components/hero-stage";
+import { HeroStage } from "@/features/marketing/components/hero-stage";
 import { AmbientBackdropMount } from "@/features/marketing/components/ambient-backdrop-mount";
 import { Reveal } from "@/features/marketing/components/reveal";
 
 /**
  * The hero, as a cinematic frame rather than a column.
+ *
+ * Every colour here is a token, not a literal. An earlier version pinned the
+ * section to `bg-black` with `text-white` on it, which looked right in dark
+ * mode and was unreadable in light: the WebGL backdrop sits at `-z-10`, which
+ * paints above the section's own background rather than behind it, so in
+ * light mode it repainted the frame near-white under white type. Tokens flip
+ * with the `dark` class, so the same markup is obsidian in one theme and
+ * clean paper in the other, and neither is a special case.
  *
  * The old arrangement was type on the left, a card on the right — a two-up
  * that puts the headline and the product in competition for the same
@@ -30,11 +35,9 @@ import { Reveal } from "@/features/marketing/components/reveal";
  */
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden bg-black">
+    <section className="relative isolate overflow-hidden bg-canvas">
       {/* The stage. Full-bleed and taller than the area it visibly occupies,
           because the bottom of it is meant to be eaten by the fade. */}
-      <AmbientBackdropMount className="absolute inset-0 -z-10" />
-
       {/* The stage sets its own height from the scene's aspect ratio rather
           than taking a percentage of the hero.
 
@@ -45,25 +48,34 @@ export function Hero() {
           every width; only its scale changes. It is deliberately wider than
           the viewport — a scene that ends at the edge reads as a picture of a
           product, one that runs past it reads as a window into one. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0">
-        <div className="relative mx-auto aspect-[1000/430] w-[200%] max-w-none -translate-x-[25%] sm:w-[128%] sm:-translate-x-[11%] lg:w-[108%] lg:-translate-x-[4%]">
+      {/* Below `lg` the stage is pushed clear of the fixed navbar. The plane
+          is rotated, so a card's painted top sits higher than its layout box
+          suggests — at 390 and at 834 the leading card measured 46px and 58px
+          from the top against a 64px bar, i.e. underneath it. */}
+      <div className="pointer-events-none absolute inset-x-0 top-20 lg:top-0">
+        <div className="relative mx-auto aspect-[1000/430] w-[150%] max-w-none -translate-x-[19%] sm:w-[128%] sm:-translate-x-[11%] lg:w-[108%] lg:-translate-x-[4%]">
+          <AmbientBackdropMount className="absolute inset-0" />
           <HeroStage className="absolute inset-0" />
 
           {/* Cinematic falloff. Two gradients, not one: a vertical ramp that
-              takes the scene into black for the type, and a radial vignette
-              that pulls the corners down so the eye lands centre-frame. */}
+              takes the scene down to the page colour so the type has
+              something flat to sit on, and a radial vignette that pulls the
+              corners in so the eye lands centre-frame.
+
+              Both fade to `--canvas`, not to black — in light mode a fade to
+              black would put a dark smear under a light headline. */}
           <div
             className="absolute inset-x-0 bottom-0 h-[58%]"
             style={{
               background:
-                "linear-gradient(to top, #000 16%, rgb(0 0 0 / 0.88) 44%, rgb(0 0 0 / 0.38) 72%, transparent 100%)",
+                "linear-gradient(to top, var(--canvas) 16%, color-mix(in srgb, var(--canvas) 88%, transparent) 44%, color-mix(in srgb, var(--canvas) 38%, transparent) 72%, transparent 100%)",
             }}
           />
           <div
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(128% 94% at 50% 22%, transparent 34%, rgb(0 0 0 / 0.58) 76%, #000 100%)",
+                "radial-gradient(128% 94% at 50% 22%, transparent 34%, color-mix(in srgb, var(--canvas) 58%, transparent) 76%, var(--canvas) 100%)",
             }}
           />
         </div>
@@ -74,7 +86,7 @@ export function Hero() {
       <div className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-[clamp(17rem,40vw,33rem)] sm:px-8 sm:pb-24">
         <div className="max-w-2xl">
           <Reveal>
-            <h1 className="display text-balance text-[2.15rem] text-white min-[400px]:text-[2.7rem] sm:text-[3.9rem] lg:text-[4.4rem]">
+            <h1 className="display text-balance text-[2.15rem] text-fg min-[400px]:text-[2.7rem] sm:text-[3.9rem] lg:text-[4.4rem]">
               Stop guessing.
               <br />
               Start building your edge.
@@ -82,7 +94,7 @@ export function Hero() {
           </Reveal>
 
           <Reveal delay={0.08}>
-            <p className="mt-5 max-w-lg text-[16px] leading-[1.6] text-white/55 sm:mt-6 sm:text-[17.5px]">
+            <p className="mt-5 max-w-lg text-[16px] leading-[1.6] text-fg-muted sm:mt-6 sm:text-[17.5px]">
               Every setup you take — the chart, the thesis, the outcome — kept
               in one place and searchable months later, when the same pattern
               shows up again.
@@ -109,22 +121,16 @@ export function Hero() {
 
               <Link
                 href="#how"
-                className="text-[14.5px] text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
+                className="text-[14.5px] text-fg-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
               >
                 See how it works
               </Link>
             </div>
           </Reveal>
 
-          {/* Below `md` the stage drops its pinned cards — there is no room to
-              float a 232px card over a 350px plane without covering the curve
-              it points at. They run here instead, where they are legible. */}
-          <Reveal delay={0.2}>
-            <HeroStageCards className="mt-10 max-w-[232px] md:hidden" />
-          </Reveal>
 
           <Reveal delay={0.24}>
-            <p className="mt-8 max-w-md text-[12.5px] leading-relaxed text-white/35">
+            <p className="mt-8 max-w-md text-[12.5px] leading-relaxed text-fg-subtle">
               Illustrative setups and an illustrative playbook. Private by
               construction — nothing connects to your broker. Free while we
               build it.
