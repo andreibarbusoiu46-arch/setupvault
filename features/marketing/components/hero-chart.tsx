@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import {
   Activity,
-  BrainCircuit,
   Crosshair,
   LineChart,
   Maximize,
@@ -14,7 +13,6 @@ import {
   Settings2,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import {
   BARS,
   LEVELS,
@@ -63,11 +61,6 @@ const WEBKIT_3D = {
 const PERSPECTIVE_WIDE = {
   WebkitPerspective: "1200px",
   perspective: "1200px",
-} as const;
-
-const PERSPECTIVE_NARROW = {
-  WebkitPerspective: "900px",
-  perspective: "900px",
 } as const;
 
 /**
@@ -157,67 +150,11 @@ const LAST_CHANGE = (() => {
  * decided it. Not a chat bubble — the point is that the judgement is short
  * enough to act on.
  */
-function GradeBadge({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "w-[14.5rem] rounded-2xl border border-black/[0.07] bg-white/70 p-3.5 backdrop-blur-2xl",
-        "dark:border-white/[0.09] dark:bg-white/[0.06]",
-        "shadow-[0_1px_1px_rgb(0_0_0/0.04),0_12px_28px_-10px_rgb(16_24_40/0.22),0_36px_72px_-36px_rgb(16_24_40/0.3)]",
-        "dark:shadow-[0_1px_2px_rgb(0_0_0/0.6),0_14px_34px_-10px_rgb(0_0_0/0.7),0_40px_80px_-40px_rgb(0_0_0/1)]",
-        className,
-      )}
-    >
-      <div className="flex items-center gap-2.5">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-accent-soft text-accent">
-          <BrainCircuit className="size-4" strokeWidth={1.7} aria-hidden="true" />
-        </span>
-        <p className="text-[12.5px] font-medium tracking-tight text-fg">
-          Execution review
-        </p>
-        <span className="stat ml-auto text-[17px] text-positive">A+</span>
-      </div>
-      <p className="mt-2.5 text-[12px] leading-snug text-fg-muted">
-        Entry at the level you wrote down. Stop never moved.
-      </p>
-    </div>
-  );
-}
 
 /**
  * The number a trader checks first, with the bar underneath so the figure has
  * a shape as well as a value.
  */
-function WinRateBadge({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "w-[13rem] rounded-2xl border border-black/[0.07] bg-white/70 p-3.5 backdrop-blur-2xl",
-        "dark:border-white/[0.09] dark:bg-white/[0.06]",
-        "shadow-[0_1px_1px_rgb(0_0_0/0.04),0_12px_28px_-10px_rgb(16_24_40/0.22),0_36px_72px_-36px_rgb(16_24_40/0.3)]",
-        "dark:shadow-[0_1px_2px_rgb(0_0_0/0.6),0_14px_34px_-10px_rgb(0_0_0/0.7),0_40px_80px_-40px_rgb(0_0_0/1)]",
-        className,
-      )}
-    >
-      <div className="flex items-baseline justify-between">
-        <p className="text-[12.5px] font-medium tracking-tight text-fg">
-          London breakout
-        </p>
-        <span className="stat text-[17px] text-fg">68.4%</span>
-      </div>
-      <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/[0.08]">
-        <div
-          className="h-full rounded-full bg-positive shadow-[0_0_12px_-2px_var(--positive)]"
-          style={{ width: "68.4%" }}
-        />
-      </div>
-      <p className="mt-2 text-[11.5px] text-fg-subtle">
-        <span className="numeric">41</span> of{" "}
-        <span className="numeric">60</span> setups taken
-      </p>
-    </div>
-  );
-}
 
 /* ========================================================================== */
 /* Desktop: the wide terminal, behind the copy                                */
@@ -523,28 +460,20 @@ export function HeroChart() {
         </div>
       </div>
 
-      {/* The glass sits here, outside the tilt, where WebKit will keep it.
-          Only from `xl`: below that the badges would land on the copy. */}
-      <motion.div
-        animate={{ y: [-10, 6, -10] }}
-        transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute right-[7%] top-[26%] hidden xl:block"
-      >
-        <GradeBadge />
-      </motion.div>
-      <motion.div
-        animate={{ y: [8, -8, 8] }}
-        transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-[22%] right-[17%] hidden xl:block"
-      >
-        <WinRateBadge />
-      </motion.div>
+      {/* The two glass badges that used to float here are gone. The equity
+          curve now occupies the hero's right half as a solid panel, and they
+          sat directly underneath it — the grade card showing through its top
+          corner, the win-rate card's last line leaking out below. Both said
+          something the curve says better: it carries the win rate, the
+          expectancy and the drawdown in its own footer, and a grade on a
+          single trade belongs beside the review screen rather than here.
+          `GradeBadge` is still rendered by the narrow panel further down. */}
 
       {/* The copy side gets its own scrim. The terminal is drawn from real
           data now, which makes it considerably busier than the generated
           series it replaced — busy enough to compete with the headline sitting
           on top of it. This quiets the left half and leaves the right, where
-          the glass badges are, alone. */}
+          the curve sits, alone. */}
       <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[58%] bg-gradient-to-r from-canvas via-canvas/96 to-transparent lg:block" />
 
       {/* Edge fades, so the terminal dissolves into the page rather than
@@ -556,211 +485,4 @@ export function HeroChart() {
   );
 }
 
-/* ========================================================================== */
-/* Phone and tablet: the same series, composed vertically, in page flow       */
-/* ========================================================================== */
 
-/* The phone shows the tail of the same session, rescaled to its own window:
-   fourteen bars across 335px need the full height to stay readable, and the
-   sixty-bar range would flatten them into a line. */
-const MOBILE_SLICE = BARS.slice(-14);
-
-const MOBILE = (() => {
-  const lo = Math.min(...MOBILE_SLICE.map((b) => b[2]));
-  const hi = Math.max(...MOBILE_SLICE.map((b) => b[1]));
-  const pad = (hi - lo) * 0.12;
-  const min = lo - pad;
-  const span = hi - lo + pad * 2;
-  const toY = (price: number) => 202 - ((price - min) / span) * 184;
-
-  return {
-    toY,
-    bars: MOBILE_SLICE.map(([o, h, l, c], index) => ({
-      cx: 20 + index * 17,
-      open: toY(o),
-      close: toY(c),
-      high: toY(h),
-      low: toY(l),
-      isBull: c >= o,
-    })),
-    // Three readings across the window, on a round grid.
-    axis: [hi, (hi + lo) / 2, lo].map((v) => Math.round(v / 25) * 25),
-  };
-})();
-
-export function HeroChartMobile({ className }: { className?: string }) {
-  const bars = MOBILE.bars;
-
-  return (
-    <div className={cn("relative", className)}>
-      <div style={PERSPECTIVE_NARROW}>
-        {/* Proportional shrink rather than a reflow: the panel keeps its tilt
-            and its internal proportions, and simply sits smaller on a phone. */}
-        <div
-          className="sv-tilt-narrow origin-top scale-[0.92] min-[400px]:scale-100"
-          style={WEBKIT_3D}
-        >
-          <motion.div
-            // A phone shows one layer, not three, so there is no parallax to
-            // read the motion against — and ±6px over 9s on a 0.92-scaled
-            // panel is about a pixel a second, which the eye does not register
-            // as movement at all. More travel, a shorter cycle, and a little
-            // yaw so the drift reads as 3D rather than as a lift.
-            animate={{ y: [-14, 14, -14], rotateY: [-1.3, 1.3, -1.3] }}
-            transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}
-            className="overflow-hidden rounded-[18px] border border-black/[0.06] bg-surface dark:border-white/[0.07]"
-            style={{
-              boxShadow: "var(--shadow-floating)",
-              // iOS composites a perpetually transformed layer far more
-              // willingly when it is promoted up front and told to keep its
-              // own 3D context.
-              willChange: "transform",
-              ...WEBKIT_3D,
-            }}
-          >
-            <div className="flex items-center gap-2 border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-positive opacity-60" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-positive" />
-              </span>
-              <span className="text-[13px] font-semibold tracking-tight text-fg">
-                {INSTRUMENT}
-              </span>
-              <span className="numeric text-[11px] text-accent">15m</span>
-              <span className="ml-auto text-[11.5px] font-medium text-positive">
-                Long
-              </span>
-            </div>
-
-            <svg
-              viewBox="0 0 320 220"
-              // Width and height as attributes too: they give the element an
-              // intrinsic size, so it cannot collapse to zero height on a
-              // browser that does not infer one from the viewBox alone.
-              width="320"
-              height="220"
-              className="block h-auto w-full"
-              role="img"
-              aria-label={`Example ${INSTRUMENT} candlestick chart with entry, live price and target`}
-            >
-              {MOBILE.axis.map((price) => (
-                <line
-                  key={price}
-                  x1="0"
-                  x2="262"
-                  y1={MOBILE.toY(price)}
-                  y2={MOBILE.toY(price)}
-                  className="stroke-border"
-                  strokeWidth="1"
-                />
-              ))}
-
-              {bars.map((bar, index) => (
-                <g key={index}>
-                  <line
-                    x1={bar.cx}
-                    x2={bar.cx}
-                    y1={bar.high}
-                    y2={bar.low}
-                    className={bar.isBull ? "stroke-positive" : "stroke-negative"}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <rect
-                    x={bar.cx - 6}
-                    y={Math.min(bar.open, bar.close)}
-                    width="12"
-                    height={Math.max(Math.abs(bar.close - bar.open), 3)}
-                    rx="2"
-                    className={bar.isBull ? "fill-positive" : "fill-negative"}
-                  />
-                </g>
-              ))}
-
-              <line
-                x1="262"
-                x2="262"
-                y1="8"
-                y2="212"
-                className="stroke-border"
-                strokeWidth="1"
-              />
-              {MOBILE.axis.map((price) => (
-                <text
-                  key={price}
-                  x="268"
-                  y={MOBILE.toY(price) + 3}
-                  className="fill-fg-subtle font-mono"
-                  fontSize="9"
-                >
-                  {price}
-                </text>
-              ))}
-
-              <g>
-                <line
-                  x1="0"
-                  x2="262"
-                  y1={MOBILE.toY(LEVELS.live)}
-                  y2={MOBILE.toY(LEVELS.live)}
-                  className="stroke-accent"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                />
-                <rect
-                  x="262"
-                  y={MOBILE.toY(LEVELS.live) - 9}
-                  width="56"
-                  height="18"
-                  rx="3"
-                  className="fill-accent"
-                />
-                <text
-                  x="290"
-                  y={MOBILE.toY(LEVELS.live) + 3.5}
-                  textAnchor="middle"
-                  className="fill-accent-fg font-mono"
-                  fontSize="10"
-                  fontWeight="600"
-                >
-                  {LIVE}
-                </text>
-              </g>
-            </svg>
-
-            <div className="grid grid-cols-3 divide-x divide-black/[0.05] border-t border-black/[0.05] dark:divide-white/[0.06] dark:border-white/[0.06]">
-              {[
-                { label: "Entry", value: ENTRY },
-                { label: "Risk / reward", value: RISK_REWARD_LABEL },
-                { label: "Setup score", value: "88" },
-              ].map((item) => (
-                <div key={item.label} className="px-3 py-3">
-                  <p className="truncate text-[11px] text-fg-subtle">{item.label}</p>
-                  <p className="numeric mt-1 text-[15px] font-semibold tracking-tight text-fg">
-                    {item.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Glass, again outside the tilted node. On a phone there is no room to
-          float it: anything overlapping this panel lands on the three figures
-          along its bottom edge, so below `sm` the badge simply sits under the
-          chart and floats only once there is width to float in. */}
-      <motion.div
-        // Deliberately out of phase with the panel above and on a different
-        // period, so the two surfaces separate instead of moving as one block.
-        // That counter-motion is what makes the depth legible on a phone.
-        animate={{ y: [9, -9, 9] }}
-        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-        style={{ willChange: "transform" }}
-        className="mt-4 flex justify-center sm:absolute sm:-bottom-24 sm:-left-4 sm:mt-0 sm:block"
-      >
-        <GradeBadge className="w-full max-w-[20rem] sm:w-[14.5rem]" />
-      </motion.div>
-    </div>
-  );
-}

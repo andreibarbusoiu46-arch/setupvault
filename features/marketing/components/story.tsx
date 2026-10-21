@@ -7,6 +7,11 @@ import { cn } from "@/lib/utils";
 import { Reveal } from "@/features/marketing/components/reveal";
 import { Section, SectionHeading } from "@/features/marketing/components/section";
 import { LEVELS, RISK_REWARD_LABEL, SESSION } from "@/features/marketing/data/nq-session";
+import {
+  EXPECTANCY_LABEL,
+  NET_R_LABEL,
+  WIN_RATE,
+} from "@/features/marketing/data/playbook";
 
 /**
  * How the product works, and then the execution review.
@@ -355,10 +360,12 @@ function AnalyzeMockup() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[11.5px] text-fg-subtle">Playbook win rate</p>
-          <p className="stat mt-1.5 text-[2.6rem] leading-none text-fg">68.4%</p>
+          <p className="stat mt-1.5 text-[2.6rem] leading-none text-fg">
+            {WIN_RATE}%
+          </p>
         </div>
         <span className="flex items-center gap-1.5 rounded-lg border border-positive/20 bg-positive-soft px-2.5 py-1.5 text-[12.5px] font-semibold text-positive">
-          +4.2
+          {NET_R_LABEL}
         </span>
       </div>
 
@@ -395,7 +402,7 @@ function AnalyzeMockup() {
 
       <div className="mt-6 grid grid-cols-3 gap-4 border-t border-black/[0.05] pt-5 dark:border-white/[0.06]">
         {[
-          { label: "Expectancy", value: "+0.74R" },
+          { label: "Expectancy", value: EXPECTANCY_LABEL },
           { label: "Best session", value: "London" },
           { label: "Streak", value: "6" },
         ].map((item) => (

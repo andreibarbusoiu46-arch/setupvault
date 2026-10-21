@@ -5,6 +5,12 @@ import { Section, SectionHeading } from "@/features/marketing/components/section
 import { calculateSetupScore } from "@/features/setup-score/utils/score";
 import { MAX_SCORE } from "@/features/setup-score/constants";
 import { LEVELS } from "@/features/marketing/data/nq-session";
+import {
+  EXPECTANCY_LABEL,
+  PLAYBOOK_NAME,
+  TRADE_COUNT,
+  WIN_RATE,
+} from "@/features/marketing/data/playbook";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,11 +85,13 @@ function CellBody({ children }: { children: React.ReactNode }) {
 /* -------------------------------------------------------------------------- */
 
 const PLAYBOOKS = [
+  // The leading row is the playbook the hero's equity curve plots, so its
+  // three figures are that array's, not a second set typed out here.
   {
-    name: "London breakout",
-    winRate: 68.4,
-    expectancy: "+0.74R",
-    taken: 60,
+    name: PLAYBOOK_NAME,
+    winRate: WIN_RATE,
+    expectancy: EXPECTANCY_LABEL,
+    taken: TRADE_COUNT,
     lead: true,
   },
   {
