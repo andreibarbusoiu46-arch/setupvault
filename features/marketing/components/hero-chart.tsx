@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -24,6 +25,15 @@ import {
   priceScaler,
   volumeScale,
 } from "@/features/marketing/data/nq-session";
+
+const AmbientBackdrop = dynamic(
+  () =>
+    import("@/features/marketing/components/ambient-backdrop").then(
+      (m) => m.AmbientBackdrop,
+    ),
+  { ssr: false },
+);
+
 
 /**
  * The hero's chart, in two compositions.
@@ -163,20 +173,23 @@ const LAST_CHANGE = (() => {
 export function HeroChart() {
   return (
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-canvas">
-      {/* The floor the terminal hovers above. First in the layer, so every
-          glow, panel and fade below paints over it. */}
-      <div className="sv-floor" aria-hidden="true">
-        <div className="sv-floor-tilt">
-          <div className="sv-floor-plane" />
-        </div>
-        <div className="sv-floor-glow" />
-        <div className="sv-floor-fade" />
-      </div>
+      {/* Where the perspective floor used to be.
 
-      {/* Ambient light, sized down hard on phones: 35rem of blur on a 390px
-          screen washes out the whole hero rather than lighting it. */}
-      <div className="absolute left-1/4 top-1/4 size-[15rem] rounded-full bg-accent/[0.13] blur-[70px] sm:size-[34rem] sm:blur-[110px]" />
-      <div className="absolute bottom-1/4 right-1/4 size-[13rem] rounded-full bg-positive/[0.08] blur-[70px] sm:size-[28rem] sm:blur-[110px]" />
+          That floor was a grid in vanishing-point projection, and on a phone
+          it drew hard blue diagonals straight across the headline and the
+          buttons. Softening it would not have helped: a grid is a ruled
+          surface, and ruled surfaces fight type for the same attention. What
+          a hero wants behind it is depth without edges, so this is a single
+          full-screen shader — two slow lights drifting in obsidian, one draw
+          call, no geometry.
+
+          Loaded without SSR because WebGL has no server render, and that
+          costs nothing here: the parent is already painted the same colour
+          the shader starts from, so there is no flash and nothing to wait
+          for. The two CSS blur circles that used to sit on top are gone with
+          it — the shader is doing that job now, in one pass instead of two
+          very large composited layers. */}
+      <AmbientBackdrop className="absolute inset-0" />
 
       {/* Only from `lg`: at tablet widths this crowds the headline, and below
           that the vertical panel replaces it entirely. */}

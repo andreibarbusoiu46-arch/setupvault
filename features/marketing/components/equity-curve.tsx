@@ -116,13 +116,16 @@ export function EquityCurve({ className }: { className?: string }) {
         willChange: "transform",
       }}
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-black/[0.07] bg-surface",
-        "dark:border-white/[0.09]",
+        // Optical glass: translucent body, directional sheen, a one-pixel
+        // specular line on the top edge and a contact shadow under a diffuse
+        // one. The blur is what makes the translucency read as thickness
+        // rather than as weak paint.
+        "glass-card relative overflow-hidden rounded-2xl backdrop-blur-2xl",
         className,
       )}
     >
       {/* Header. Numbers, not adjectives. */}
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-black/[0.05] px-5 py-3.5 dark:border-white/[0.06]">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-glass-border px-5 py-3.5">
         <p className="text-[12.5px] font-semibold tracking-tight text-fg">
           {PLAYBOOK_NAME}
         </p>
@@ -159,7 +162,7 @@ export function EquityCurve({ className }: { className?: string }) {
               </linearGradient>
 
               <filter id={glowId} x="-20%" y="-40%" width="140%" height="180%">
-                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
@@ -191,7 +194,7 @@ export function EquityCurve({ className }: { className?: string }) {
               type="monotone"
               dataKey="r"
               stroke={`url(#${lineId})`}
-              strokeWidth={2.5}
+              strokeWidth={2.25}
               fill={`url(#${fillId})`}
               filter={`url(#${glowId})`}
               // The dot on hover only. A dot on all sixty is a beaded
@@ -214,7 +217,7 @@ export function EquityCurve({ className }: { className?: string }) {
       {/* The drawdown sits next to the total on purpose. A curve shown without
           it is the half of the story that sells, and a trader reads the
           missing half as a reason to distrust the rest. */}
-      <dl className="grid grid-cols-3 gap-3 border-t border-black/[0.05] px-5 py-3.5 dark:border-white/[0.06]">
+      <dl className="grid grid-cols-3 gap-3 border-t border-glass-border px-5 py-3.5">
         {[
           { label: "Win rate", value: `${WIN_RATE}%` },
           { label: "Expectancy", value: EXPECTANCY_LABEL },

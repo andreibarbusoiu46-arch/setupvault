@@ -34,17 +34,18 @@ export function ThemeToggle({ className }: { className?: string }) {
   );
 
   const toggle = useCallback(() => {
-    const root = document.documentElement;
-    root.classList.add("theme-transition");
-
     // Read the class rather than React state: it is what is actually on
     // screen, and it is right even on the first click after load.
-    setTheme(root.classList.contains("dark") ? "light" : "dark");
-
-    // Matches the 220ms in `.theme-transition`, plus a frame. Leaving the
-    // class on for longer than the fade means every hover and focus change in
-    // that window is also forced through it.
-    window.setTimeout(() => root.classList.remove("theme-transition"), 260);
+    //
+    // Nothing else happens here. This used to add a `.theme-transition`
+    // class to <html> to cross-fade the palette, and that class cost 1520ms
+    // of blocked main thread on a throttled phone — the `*` selector
+    // invalidated style for every node in the document. next-themes handles
+    // the swap cleanly on its own; the fastest toggle is the one that only
+    // changes custom properties.
+    setTheme(
+      document.documentElement.classList.contains("dark") ? "light" : "dark",
+    );
   }, [setTheme]);
 
   return (

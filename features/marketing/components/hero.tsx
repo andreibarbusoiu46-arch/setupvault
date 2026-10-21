@@ -2,24 +2,18 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
-import {
-  ENTRY,
-  HeroChart,
-  LIVE,
-  TARGET,
-} from "@/features/marketing/components/hero-chart";
+import { HeroChart } from "@/features/marketing/components/hero-chart";
 import { EquityCurve } from "@/features/marketing/components/equity-curve";
 import { Reveal } from "@/features/marketing/components/reveal";
 
 /**
  * The hero.
  *
- * Built around a price ladder rather than a centred stack with a pill badge
- * over it. Every trading platform draws a vertical price scale with a filled
- * tag at the live price; this is that scale, used as the page's spine. Its
- * three values are the entry, live price and target of the setup in the
- * terminal behind it — imported from the chart itself, so the two can never
- * drift apart.
+ * The price ladder that used to run down the left — a vertical scale with a
+ * filled tag at the live price — is gone. It was a nice idea and it read as
+ * clutter: three floating numbers beside a headline look like stray labels
+ * rather than a scale, and on a phone they crowded the one column of type
+ * the hero has. The levels still live on the chart that owns them.
  *
  * Three planes, in depth, rather than a row of things side by side: the
  * perspective floor at the bottom of the stack, the tilted terminal behind
@@ -37,11 +31,6 @@ import { Reveal } from "@/features/marketing/components/reveal";
  * below — so nothing is lost but the duplication.
  */
 
-const LEVELS = [
-  { value: TARGET, live: false },
-  { value: LIVE, live: true },
-  { value: ENTRY, live: false },
-];
 
 export function Hero() {
   return (
@@ -50,19 +39,7 @@ export function Hero() {
 
       <div className="relative mx-auto w-full max-w-6xl px-5 sm:px-8">
         <div className="grid grid-cols-1 items-center gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] lg:gap-x-14">
-          <div className="ladder">
-            {/* The scale. Its readings match the terminal exactly. */}
-            <div className="ladder-scale" aria-hidden="true">
-              {LEVELS.map((level) => (
-                <p
-                  key={level.value}
-                  className={level.live ? "ladder-tick ladder-tick--live" : "ladder-tick"}
-                >
-                  {level.value}
-                </p>
-              ))}
-            </div>
-
+          <div>
             <div>
               <Reveal>
                 <h1 className="display text-balance text-[2.05rem] text-fg min-[400px]:text-[2.6rem] sm:text-[3.6rem] lg:text-[4.1rem]">
