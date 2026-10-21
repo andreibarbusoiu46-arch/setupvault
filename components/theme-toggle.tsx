@@ -41,7 +41,10 @@ export function ThemeToggle({ className }: { className?: string }) {
     // screen, and it is right even on the first click after load.
     setTheme(root.classList.contains("dark") ? "light" : "dark");
 
-    window.setTimeout(() => root.classList.remove("theme-transition"), 550);
+    // Matches the 220ms in `.theme-transition`, plus a frame. Leaving the
+    // class on for longer than the fade means every hover and focus change in
+    // that window is also forced through it.
+    window.setTimeout(() => root.classList.remove("theme-transition"), 260);
   }, [setTheme]);
 
   return (

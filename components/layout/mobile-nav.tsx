@@ -47,7 +47,7 @@ export function MobileNav({ planLabel }: { planLabel: string }) {
         {open ? (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -59,7 +59,11 @@ export function MobileNav({ planLabel }: { planLabel: string }) {
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
-              className="glass-strong backdrop-blur-2xl fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-glass-border px-4 py-5 lg:hidden"
+              // `glass-strong` is opaque-based now, so the panel occludes the
+              // dashboard whether or not the browser composes the blur. The
+              // border is the strong one rather than the glass hairline: at
+              // 10% white the drawer's edge disappeared into the scrim.
+              className="glass-strong backdrop-blur-2xl fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-border-strong px-4 py-5 lg:hidden"
               initial={{ x: reduceMotion ? 0 : "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: reduceMotion ? 0 : "-100%" }}
