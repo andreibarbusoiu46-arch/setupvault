@@ -22,6 +22,15 @@ const LINKS = [
 const ENTER = [0.16, 1, 0.3, 1] as const;
 const PRESS = { type: "spring", stiffness: 420, damping: 30, mass: 0.7 } as const;
 
+/** The one vivid thing in the chrome: an indigo-to-violet pill with a
+ *  specular top edge and its own coloured shadow, so it reads as lit rather
+ *  than filled. */
+const PILL = [
+  "rounded-full bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white",
+  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.22),0_8px_24px_-8px_rgb(99_102_241/0.85)]",
+  "hover:brightness-110",
+].join(" ");
+
 export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -130,7 +139,7 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
                   >
                     <Link href={ROUTES.login}>Log in</Link>
                   </Button>
-                  <Button asChild size="lg" fullWidth onClick={() => setOpen(false)}>
+                  <Button asChild size="lg" fullWidth className={PILL} onClick={() => setOpen(false)}>
                     <Link href={ROUTES.signup}>Start free</Link>
                   </Button>
                 </>
@@ -162,7 +171,15 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
             <li key={link.href}>
               <a
                 href={link.href}
-                className="relative rounded-lg px-3 py-2 text-[13.5px] text-fg-muted transition-colors duration-300 hover:text-fg"
+                className={cn(
+                  "relative rounded-lg px-3 py-2 text-[13.5px] transition-colors duration-300",
+                  // The hero is black in both themes, so until the bar has
+                  // something of its own behind it the links are light. Past
+                  // the hero they go back to the palette.
+                  scrolled
+                    ? "text-fg-muted hover:text-fg"
+                    : "text-white/55 hover:text-white",
+                )}
               >
                 {link.label}
               </a>
@@ -178,10 +195,20 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
             </Button>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={ROUTES.login}>Log in</Link>
-              </Button>
-              <Button asChild size="sm">
+              <Link
+                href={ROUTES.login}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-[13.5px] transition-colors duration-300",
+                  scrolled
+                    ? "text-fg-muted hover:text-fg"
+                    : "text-white/60 hover:text-white",
+                )}
+              >
+                Sign in
+              </Link>
+              <Button asChild size="sm" className={PILL}>
+                {/* "Start free", not "Start free trial" — the free tier does
+                    not expire, and there is no paid plan to trial into. */}
                 <Link href={ROUTES.signup}>Start free</Link>
               </Button>
             </>
@@ -203,8 +230,9 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
               "inline-flex size-11 items-center justify-center rounded-full",
               "border border-black/[0.07] bg-black/[0.03] backdrop-blur-2xl",
               "dark:border-white/[0.07] dark:bg-white/[0.03]",
-              "text-fg-muted shadow-[inset_0_1px_0_0_rgb(255_255_255/0.5)] dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]",
-              "transition-colors duration-300 hover:text-fg",
+              "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.5)] dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]",
+              scrolled || open ? "text-fg-muted hover:text-fg" : "text-white/70 hover:text-white",
+              "transition-colors duration-300",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             )}
           >

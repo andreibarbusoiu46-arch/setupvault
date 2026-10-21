@@ -2,95 +2,132 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
-import { HeroChart } from "@/features/marketing/components/hero-chart";
-import { EquityCurve } from "@/features/marketing/components/equity-curve";
+import {
+  HeroStage,
+  HeroStageCards,
+} from "@/features/marketing/components/hero-stage";
+import { AmbientBackdropMount } from "@/features/marketing/components/ambient-backdrop-mount";
 import { Reveal } from "@/features/marketing/components/reveal";
 
 /**
- * The hero.
+ * The hero, as a cinematic frame rather than a column.
  *
- * The price ladder that used to run down the left — a vertical scale with a
- * filled tag at the live price — is gone. It was a nice idea and it read as
- * clutter: three floating numbers beside a headline look like stray labels
- * rather than a scale, and on a phone they crowded the one column of type
- * the hero has. The levels still live on the chart that owns them.
+ * The old arrangement was type on the left, a card on the right — a two-up
+ * that puts the headline and the product in competition for the same
+ * horizontal band, and reads as a template because it is one.
  *
- * Three planes, in depth, rather than a row of things side by side: the
- * perspective floor at the bottom of the stack, the tilted terminal behind
- * the type, and the equity curve in front of both. A desk seen at an angle,
- * with the one number that matters floating nearest the reader.
+ * This one is stacked in depth instead. The 3D stage fills the upper frame
+ * and runs full-bleed to both edges, so it reads as a window into the product
+ * rather than a picture of it. Underneath, a gradient takes it down to pitch
+ * black, and the headline sits on that black with nothing behind it to fight.
+ * The scene does not stop at the fade — it continues under the type, which is
+ * what makes the frame feel deep rather than layered.
  *
- * The curve takes the front plane because it is what a trader opens first.
- * The terminal is ambience — it is what the screen looks like — and it sits
- * at reduced opacity behind the headline, because the sentence has to land
- * before any chart means anything.
- *
- * The vertical candlestick panel that used to run under the copy on a phone
- * is gone from here. Two charts stacked in a mobile hero is a scroll, not a
- * hero, and those same candles open step one of "How it works" immediately
- * below — so nothing is lost but the duplication.
+ * The copy is deliberately short here. A headline competing with a moving 3D
+ * scene two inches above it loses, so the paragraph says one thing and the
+ * CTA is a single compact pill rather than the pair of full-width slabs that
+ * used to sit here.
  */
-
-
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden pb-20 pt-28 sm:pb-24 sm:pt-36 lg:pt-40">
-      <HeroChart />
+    <section className="relative isolate overflow-hidden bg-black">
+      {/* The stage. Full-bleed and taller than the area it visibly occupies,
+          because the bottom of it is meant to be eaten by the fade. */}
+      <AmbientBackdropMount className="absolute inset-0 -z-10" />
 
-      <div className="relative mx-auto w-full max-w-6xl px-5 sm:px-8">
-        <div className="grid grid-cols-1 items-center gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] lg:gap-x-14">
-          <div>
-            <div>
-              <Reveal>
-                <h1 className="display text-balance text-[2.05rem] text-fg min-[400px]:text-[2.6rem] sm:text-[3.6rem] lg:text-[4.1rem]">
-                  Stop guessing.
-                  <br />
-                  Start building your edge.
-                </h1>
-              </Reveal>
+      {/* The stage sets its own height from the scene's aspect ratio rather
+          than taking a percentage of the hero.
 
-              <Reveal delay={0.08}>
-                <p className="mt-6 max-w-xl text-[16.5px] leading-[1.6] text-fg-muted sm:mt-7 sm:text-[18px]">
-                  Every setup you take, with the chart you were looking at, the
-                  thesis you wrote and what actually happened. Searchable months
-                  later, when the same pattern shows up again.
-                </p>
-              </Reveal>
+          A percentage was tried and broke on a phone: the plane is a 1000x430
+          viewBox drawn with preserveAspectRatio="none", so a tall container
+          stretched the curve vertically until it climbed straight through the
+          headline. Pinning the aspect keeps the composition identical at
+          every width; only its scale changes. It is deliberately wider than
+          the viewport — a scene that ends at the edge reads as a picture of a
+          product, one that runs past it reads as a window into one. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0">
+        <div className="relative mx-auto aspect-[1000/430] w-[200%] max-w-none -translate-x-[25%] sm:w-[128%] sm:-translate-x-[11%] lg:w-[108%] lg:-translate-x-[4%]">
+          <HeroStage className="absolute inset-0" />
 
-              <Reveal delay={0.14}>
-                <div className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-                  <Button asChild size="lg" className="h-12 px-7 text-[15px]">
-                    <Link href={ROUTES.signup}>Start free</Link>
-                  </Button>
-                  <Button
-                    asChild
-                    size="lg"
-                    variant="outline"
-                    className="h-12 px-7 text-[15px]"
-                  >
-                    <Link href="#how">See how it works</Link>
-                  </Button>
-                </div>
-              </Reveal>
+          {/* Cinematic falloff. Two gradients, not one: a vertical ramp that
+              takes the scene into black for the type, and a radial vignette
+              that pulls the corners down so the eye lands centre-frame. */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-[58%]"
+            style={{
+              background:
+                "linear-gradient(to top, #000 16%, rgb(0 0 0 / 0.88) 44%, rgb(0 0 0 / 0.38) 72%, transparent 100%)",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(128% 94% at 50% 22%, transparent 34%, rgb(0 0 0 / 0.58) 76%, #000 100%)",
+            }}
+          />
+        </div>
+      </div>
 
-              {/* Prose, not a row of facts joined by middle dots. */}
-              <Reveal delay={0.2}>
-                <p className="mt-7 max-w-md text-[13.5px] leading-relaxed text-fg-subtle">
-                  Private by construction. Nothing connects to your broker. Free
-                  while we build it.
-                </p>
-              </Reveal>
+      {/* The copy, on the black. The top padding is what positions it under
+          the scene; it is large because the scene above it is the point. */}
+      <div className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-[clamp(17rem,40vw,33rem)] sm:px-8 sm:pb-24">
+        <div className="max-w-2xl">
+          <Reveal>
+            <h1 className="display text-balance text-[2.15rem] text-white min-[400px]:text-[2.7rem] sm:text-[3.9rem] lg:text-[4.4rem]">
+              Stop guessing.
+              <br />
+              Start building your edge.
+            </h1>
+          </Reveal>
+
+          <Reveal delay={0.08}>
+            <p className="mt-5 max-w-lg text-[16px] leading-[1.6] text-white/55 sm:mt-6 sm:text-[17.5px]">
+              Every setup you take — the chart, the thesis, the outcome — kept
+              in one place and searchable months later, when the same pattern
+              shows up again.
+            </p>
+          </Reveal>
+
+          <Reveal delay={0.14}>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 sm:mt-9">
+              <Button
+                asChild
+                size="lg"
+                className={[
+                  "h-11 rounded-full px-6 text-[14.5px] font-semibold",
+                  "bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white",
+                  "shadow-[0_1px_0_0_rgb(255_255_255/0.22)_inset,0_10px_30px_-10px_rgb(99_102_241/0.9)]",
+                  "hover:brightness-110",
+                ].join(" ")}
+              >
+                {/* "Start free", not "Start free trial": the free tier does
+                    not expire, and there is no paid plan open to trial into
+                    yet. */}
+                <Link href={ROUTES.signup}>Start free →</Link>
+              </Button>
+
+              <Link
+                href="#how"
+                className="text-[14.5px] text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
+              >
+                See how it works
+              </Link>
             </div>
-          </div>
+          </Reveal>
 
-          {/* The front plane. On a phone it follows the copy; from `lg` it sits
-              beside it, where the terminal behind has receded far enough for a
-              solid panel to read on top of it. */}
-          <Reveal delay={0.26} className="w-full">
-            <EquityCurve className="w-full shadow-floating" />
-            <p className="mt-3 text-center text-[12px] leading-relaxed text-fg-subtle lg:text-left">
-              An illustrative playbook over sixty logged setups. Your own curve
-              is whatever your results make it.
+          {/* Below `md` the stage drops its pinned cards — there is no room to
+              float a 232px card over a 350px plane without covering the curve
+              it points at. They run here instead, where they are legible. */}
+          <Reveal delay={0.2}>
+            <HeroStageCards className="mt-10 max-w-[232px] md:hidden" />
+          </Reveal>
+
+          <Reveal delay={0.24}>
+            <p className="mt-8 max-w-md text-[12.5px] leading-relaxed text-white/35">
+              Illustrative setups and an illustrative playbook. Private by
+              construction — nothing connects to your broker. Free while we
+              build it.
             </p>
           </Reveal>
         </div>
