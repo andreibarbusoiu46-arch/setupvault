@@ -1,8 +1,13 @@
+"use client";
+
+import { useCallback, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { HeroStage } from "@/features/marketing/components/hero-stage";
+import { NotificationStack } from "@/features/marketing/components/notification-stack";
+import type { SceneEvent } from "@/features/marketing/components/trading-scene";
 import { AmbientBackdropMount } from "@/features/marketing/components/ambient-backdrop-mount";
 import { Reveal } from "@/features/marketing/components/reveal";
 
@@ -34,6 +39,21 @@ import { Reveal } from "@/features/marketing/components/reveal";
  * used to sit here.
  */
 export function Hero() {
+  // The only state the hero keeps. The chart emits three milestones per
+  // cycle and one reset; everything between them is written to the DOM by
+  // the scene's own loop, so a running animation costs no renders here.
+  const [shown, setShown] = useState<SceneEvent[]>([]);
+
+  const onEvent = useCallback((event: SceneEvent) => {
+    setShown((current) =>
+      event === "reset"
+        ? []
+        : current.includes(event)
+          ? current
+          : [...current, event],
+    );
+  }, []);
+
   return (
     <section className="relative isolate overflow-hidden bg-canvas">
       {/* The stage. Full-bleed and taller than the area it visibly occupies,
@@ -53,9 +73,13 @@ export function Hero() {
           suggests — at 390 and at 834 the leading card measured 46px and 58px
           from the top against a 64px bar, i.e. underneath it. */}
       <div className="pointer-events-none absolute inset-x-0 top-20 lg:top-0">
-        <div className="relative mx-auto aspect-[1000/430] w-[150%] max-w-none -translate-x-[19%] sm:w-[128%] sm:-translate-x-[11%] lg:w-[108%] lg:-translate-x-[4%]">
+        <div className="relative mx-auto aspect-[1000/430] w-[150%] max-w-none -translate-x-[32%] sm:w-[128%] sm:-translate-x-[28%] lg:w-[108%] lg:-translate-x-[8%]">
           <AmbientBackdropMount className="absolute inset-0" />
-          <HeroStage className="absolute inset-0" />
+          <HeroStage
+            className="absolute inset-0"
+            onEvent={onEvent}
+            broken={shown.includes("break")}
+          />
 
           {/* Cinematic falloff. Two gradients, not one: a vertical ramp that
               takes the scene down to the page colour so the type has
@@ -107,7 +131,7 @@ export function Hero() {
                 asChild
                 size="lg"
                 className={[
-                  "h-11 rounded-full px-6 text-[14.5px] font-semibold",
+                  "sv-sheen relative h-11 overflow-hidden rounded-full px-6 text-[14.5px] font-semibold",
                   "bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white",
                   "shadow-[0_1px_0_0_rgb(255_255_255/0.22)_inset,0_10px_30px_-10px_rgb(99_102_241/0.9)]",
                   "hover:brightness-110",
@@ -123,7 +147,7 @@ export function Hero() {
                 href="#how"
                 className="text-[14.5px] text-fg-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
               >
-                See how it works
+                Explore the product
               </Link>
             </div>
           </Reveal>
@@ -137,6 +161,14 @@ export function Hero() {
             </p>
           </Reveal>
         </div>
+
+        {/* The notices the session raises. Beside the copy where there is
+            width for them, under it where there is not — never over the
+            headline or the CTA. */}
+        <NotificationStack
+          shown={shown}
+          className="mt-10 w-full max-w-[20rem] lg:absolute lg:right-0 lg:top-1/2 lg:mt-0 lg:w-[20rem] lg:-translate-y-1/2"
+        />
       </div>
     </section>
   );

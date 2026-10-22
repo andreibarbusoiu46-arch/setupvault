@@ -578,3 +578,34 @@
 
 /* The short rule a level is drawn with, reaching the scale. */
 
+
+/* The primary CTA's specular sweep.
+
+   A single highlight crossing the button every few seconds, at an angle, and
+   only ever additive — the label underneath keeps its own contrast because
+   nothing dims it. Behind `prefers-reduced-motion`, where it simply does not
+   run rather than running faster. */
+@keyframes sv-sheen {
+  0%   { transform: translateX(-140%); }
+  60%  { transform: translateX(140%); }
+  100% { transform: translateX(140%); }
+}
+
+.sv-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    rgb(255 255 255 / 0.26) 50%,
+    transparent 62%
+  );
+  transform: translateX(-140%);
+  animation: sv-sheen 5s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-sheen::after { animation: none; opacity: 0; }
+}

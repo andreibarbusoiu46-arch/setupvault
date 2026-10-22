@@ -4,8 +4,23 @@ import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 import { cn } from "@/lib/utils";
-import { EQUITY } from "@/features/marketing/data/playbook";
 import { BARS } from "@/features/marketing/data/nq-session";
+import {
+  BREAK_INDEX,
+  ENTRY,
+  FINAL_PRICE,
+  INSTRUMENT,
+  PLAY,
+  R_MULTIPLE,
+  STOP,
+} from "@/features/marketing/data/breakout-sim";
+import {
+  SCENE_H,
+  SCENE_W,
+  TradingScene,
+  sceneX,
+  type SceneEvent,
+} from "@/features/marketing/components/trading-scene";
 import { calculateSetupScore } from "@/features/setup-score/utils/score";
 
 /**
@@ -34,47 +49,10 @@ import { calculateSetupScore } from "@/features/setup-score/utils/score";
  * positions from the same function.
  */
 
-/* ── Projection ──────────────────────────────────────────────────────────── */
+/* ── The pinned setup ──────────────────────────────────────────────────── */
 
-const VIEW_W = 1000;
-const VIEW_H = 430;
-const PAD = { left: 48, right: 56, top: 104, bottom: 96 };
-
-const MAX_R = Math.max(...EQUITY.map((p) => p.r));
-
-/** Data index → coordinates in the SVG's own space. One source of truth. */
-function pointAt(index: number) {
-  const span = EQUITY.length - 1;
-  const x = PAD.left + (index / span) * (VIEW_W - PAD.left - PAD.right);
-  const plot = VIEW_H - PAD.top - PAD.bottom;
-  const y = VIEW_H - PAD.bottom - (EQUITY[index].r / MAX_R) * plot;
-  return { x, y };
-}
-
-/** Catmull-Rom through every point, emitted as a cubic path. Smooth, and it
- *  actually passes through the nodes — which matters when something is pinned
- *  to one. A plain quadratic smoothing would miss them by a few pixels. */
-function curvePath(): string {
-  const pts = EQUITY.map((_, i) => pointAt(i));
-  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] ?? p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
-  }
-  return d;
-}
-
-const CURVE = curvePath();
-const AREA = `${CURVE} L ${pointAt(EQUITY.length - 1).x.toFixed(2)} ${VIEW_H - PAD.bottom} L ${PAD.left} ${VIEW_H - PAD.bottom} Z`;
-
-/* ── The two pinned setups ───────────────────────────────────────────────── */
+/** Directly over the candle that closed above the level, not an arbitrary spot. */
+const PIN_ANCHOR = { x: sceneX(BREAK_INDEX), y: 116 };
 
 /** Scores come from the product's own engine, not from a number typed here. */
 function scoreFor(input: {
@@ -102,27 +80,20 @@ function scoreFor(input: {
 const PINS = [
   {
     index: 21,
-    pair: "XAUUSD",
-    play: "London breakout",
-    r: "+3.4R",
+    pair: INSTRUMENT,
+    play: PLAY,
+    // The same R the notification quotes, from the same module. Two numbers
+    // for one trade on one screen is how a page stops being believed.
+    r: R_MULTIPLE,
     won: true,
-    // Candles lifted from the real session, so the thumbnail is a chart
-    // rather than a decoration.
     bars: BARS.slice(6, 16),
     score: scoreFor({
-      entry: 2412,
-      stopLoss: 2404,
-      takeProfit: 2439,
+      entry: ENTRY,
+      stopLoss: STOP,
+      takeProfit: FINAL_PRICE,
       tagCount: 4,
       notesLength: 210,
     }),
-    // The point the leader line terminates on and the card's bottom-centre
-    // sits at, in the SVG's own units. Percent offsets were tried first and
-    // put one card through the navbar: a percentage of the plane is not a
-    // position on the plane once the plane is rotated.
-    anchor: { x: 372, y: 182 },
-    z: 78,
-    narrow: true,
   },
   {
     index: 46,
@@ -138,12 +109,6 @@ const PINS = [
       tagCount: 1,
       notesLength: 0,
     }),
-    anchor: { x: 724, y: 150 },
-    z: 44,
-    // Two 232px cards cannot both be legible on a 390px plane. The loser
-    // steps aside there and the winner gets the room to be readable; both
-    // return as soon as there is width for them.
-    narrow: false,
   },
 ] as const;
 
@@ -242,60 +207,19 @@ function SetupCard({ pin }: { pin: (typeof PINS)[number] }) {
   );
 }
 
-const WEEKDAYS = [
-  { day: "Monday", value: 72, up: true },
-  { day: "Tuesday", value: 48, up: true },
-  { day: "Wednesday", value: 91, up: true },
-  { day: "Thursday", value: 34, up: false },
-  { day: "Friday", value: 61, up: true },
-];
-
-function SessionPanel() {
-  return (
-    <div className={cn(GLASS, "w-full p-3.5")}>
-      <p className="text-[11px] font-semibold tracking-tight text-fg">
-        By weekday
-      </p>
-      <p className="mt-0.5 text-[9.5px] text-fg-subtle">Net R, last 60 setups</p>
-
-      <ul className="mt-3 flex flex-col gap-2">
-        {WEEKDAYS.map((row) => (
-          <li key={row.day}>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-[10px] text-fg-muted">{row.day}</span>
-              <span
-                className="numeric text-[10px] font-semibold text-[color:var(--hs-pos)] dark:text-[color:var(--hs-pos-d)]"
-                style={{
-                  // One variable per row so light and dark each get a value
-                  // that actually passes contrast on their own background.
-                  ["--hs-pos" as string]: row.up ? "#047857" : "#b91c1c",
-                  ["--hs-pos-d" as string]: row.up ? "#34d399" : "#f87171",
-                }}
-              >
-                {row.up ? "+" : "−"}
-                {(row.value / 20).toFixed(1)}R
-              </span>
-            </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/[0.07]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${row.value}%`,
-                  background: row.up ? "#10b981" : "#ef4444",
-                  boxShadow: `0 0 10px -1px ${row.up ? "#10b981" : "#ef4444"}`,
-                }}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 /* ── The stage ───────────────────────────────────────────────────────────── */
 
-export function HeroStage({ className }: { className?: string }) {
+export function HeroStage({
+  className,
+  onEvent,
+  broken,
+}: {
+  className?: string;
+  /** Milestones from the session, forwarded to the notification stack. */
+  onEvent?: (event: SceneEvent) => void;
+  /** Whether the session has broken its level this cycle. */
+  broken?: boolean;
+}) {
   const host = useRef<HTMLDivElement>(null);
 
   // Pointer parallax. Motion values, so moving the mouse never triggers a
@@ -351,144 +275,49 @@ export function HeroStage({ className }: { className?: string }) {
         animate={{ y: [0, -14, 0] }}
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* Layer 1 — pushed back behind the glass, and softened, so the eye
-            reads it as further away rather than merely smaller. */}
+        {/* Layer 1 — the other record in the library, further back and
+            softened so the eye reads it as behind rather than merely
+            smaller. A losing setup on purpose: a hero that shows only
+            winners is the thing every trader has learned to distrust. */}
         <div
-          className="absolute left-[0.5%] top-[30%] hidden w-[20.5%] opacity-80 blur-[0.6px] md:block"
-          style={{ transform: "translateZ(-40px)" }}
+          className="absolute left-[2%] top-[14%] hidden w-[17rem] opacity-80 blur-[0.5px] lg:block"
+          style={{ transform: "translateZ(-46px)" }}
         >
-          <SessionPanel />
-        </div>
-
-        {/* Layer 2 — the curve. */}
-        <div className="absolute inset-0" style={{ transform: "translateZ(12px)" }}>
-          <svg
-            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-            preserveAspectRatio="none"
-            className="h-full w-full"
-          >
-            <defs>
-              <linearGradient id="hs-stroke" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#8b5cf6" />
-                <stop offset="55%" stopColor="#38bdf8" />
-                <stop offset="100%" stopColor="#10b981" />
-              </linearGradient>
-              <linearGradient id="hs-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.30" />
-                <stop offset="55%" stopColor="#8b5cf6" stopOpacity="0.10" />
-                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
-              </linearGradient>
-              <filter id="hs-glow" x="-10%" y="-40%" width="120%" height="200%">
-                <feGaussianBlur stdDeviation="6" result="b" />
-                <feMerge>
-                  <feMergeNode in="b" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
-            {/* Horizon rules. Four, barely there — enough to read a level
-                against without becoming a grid. */}
-            {[0.25, 0.45, 0.65, 0.85].map((t) => {
-              const y = PAD.top + t * (VIEW_H - PAD.top - PAD.bottom);
-              return (
-                <line
-                  key={t}
-                  x1={PAD.left}
-                  x2={VIEW_W - PAD.right}
-                  y1={y}
-                  y2={y}
-                  stroke="#ffffff"
-                  strokeOpacity="0.05"
-                  strokeWidth="1"
-                  strokeDasharray="2 10"
-                />
-              );
-            })}
-
-            <path d={AREA} fill="url(#hs-fill)" />
-            <path
-              d={CURVE}
-              fill="none"
-              stroke="url(#hs-stroke)"
-              strokeWidth="3"
-              strokeLinecap="round"
-              filter="url(#hs-glow)"
-            />
-
-            {/* Leader lines, drawn here so each one ends exactly on its node.
-                An elbow rather than a diagonal: it reads as a callout instead
-                of as a stray stroke across the chart. */}
-            {PINS.map((pin) => {
-              const node = pointAt(pin.index);
-              // Up from the node, then across to the card. An elbow reads as
-              // a callout; a bare diagonal reads as a stray stroke over the
-              // chart, which is what the first version looked like.
-              const turn = (node.y + pin.anchor.y) / 2;
-              return (
-                <g key={pin.index}>
-                  <path
-                    d={`M ${node.x} ${node.y} V ${turn} H ${pin.anchor.x} V ${pin.anchor.y}`}
-                    stroke="#38bdf8"
-                    strokeOpacity="0.5"
-                    strokeWidth="1.2"
-                    strokeDasharray="3 4"
-                    fill="none"
-                  />
-                  <circle cx={node.x} cy={node.y} r="9" fill="#38bdf8" opacity="0.14">
-                    <animate
-                      attributeName="r"
-                      values="6;13;6"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                    />
-                    <animate
-                      attributeName="opacity"
-                      values="0.22;0;0.22"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r="3.6"
-                    fill="#e2f4ff"
-                    stroke="#38bdf8"
-                    strokeWidth="1.6"
-                  />
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Layer 3 — the setups, forward of everything. */}
-        {/* The setups, forward of everything, at every width.
-
-            They used to vanish below `md` and reappear as a plain stacked
-            list under the copy, which threw away the whole point of the
-            composition — a card pinned to the exact trade that produced that
-            part of the curve. A 232px card simply does not fit a 390px
-            phone, so it is scaled rather than hidden. The scale sits on an
-            inner wrapper: the outer box keeps its unscaled height, so
-            translate(-100%) still lands the card's bottom edge precisely on
-            the anchor the leader line arrives at. */}
-        {PINS.map((pin) => (
-          <div
-            key={pin.index}
-            className={cn("absolute", !pin.narrow && "hidden sm:block")}
-            style={{
-              left: `${(pin.anchor.x / VIEW_W) * 100}%`,
-              top: `${(pin.anchor.y / VIEW_H) * 100}%`,
-              transform: `translateZ(${pin.z}px) translate(-50%, -100%)`,
-            }}
-          >
-            <div className="origin-bottom scale-[0.72] sm:scale-[0.76] lg:scale-100">
-              <SetupCard pin={pin} />
-            </div>
+          <div className="origin-bottom-left scale-[0.84]">
+            <SetupCard pin={PINS[1]} />
           </div>
-        ))}
+        </div>
+
+        {/* Layer 2 — the session. It runs its own state machine and writes
+            every frame straight to the DOM; nothing in this subtree
+            re-renders while it plays. */}
+        <div className="absolute inset-0" style={{ transform: "translateZ(12px)" }}>
+          <TradingScene onEvent={onEvent} />
+        </div>
+
+        {/* Layer 3 — the saved setup, forward of everything.
+
+            It is pinned to the break itself rather than to an arbitrary
+            point, and it arrives when the break does: the card is the record
+            the chart just produced, so showing it before the move has
+            happened would be telling the story backwards. */}
+        <div
+          className="absolute"
+          style={{
+            left: `${(PIN_ANCHOR.x / SCENE_W) * 100}%`,
+            top: `${(PIN_ANCHOR.y / SCENE_H) * 100}%`,
+            transform: "translateZ(74px) translate(-50%, -100%)",
+          }}
+        >
+          <div
+            className={cn(
+              "origin-bottom scale-[0.72] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] sm:scale-[0.76] lg:scale-100",
+              broken ? "opacity-100 blur-0" : "translate-y-2 opacity-0 blur-[2px]",
+            )}
+          >
+            <SetupCard pin={PINS[0]} />
+          </div>
+        </div>
       </motion.div>
     </div>
   );

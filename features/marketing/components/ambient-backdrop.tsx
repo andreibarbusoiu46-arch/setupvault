@@ -118,14 +118,14 @@ function readColor(name: string, fallback: string): THREE.Color {
   }
 }
 
-function Field({ reduceMotion }: { reduceMotion: boolean }) {
+function Field() {
   const material = useRef<THREE.ShaderMaterial>(null);
   const { size, invalidate } = useThree();
 
   // Where the colours are heading. Mutated by the observer below, never by
   // React, so a theme change costs no render anywhere in the tree.
   const target = useRef({
-    base: new THREE.Color("#050609"),
+    base: new THREE.Color("#07090f"),
     glowA: new THREE.Color("#4d8bf8"),
     glowB: new THREE.Color("#19c08a"),
     intensity: 0.15,
@@ -135,7 +135,7 @@ function Field({ reduceMotion }: { reduceMotion: boolean }) {
     () => ({
       uTime: { value: 0 },
       uRes: { value: new THREE.Vector2(1, 1) },
-      uBase: { value: new THREE.Color("#050609") },
+      uBase: { value: new THREE.Color("#07090f") },
       uGlowA: { value: new THREE.Color("#4d8bf8") },
       uGlowB: { value: new THREE.Color("#19c08a") },
       uIntensity: { value: 0.15 },
@@ -146,15 +146,16 @@ function Field({ reduceMotion }: { reduceMotion: boolean }) {
   useEffect(() => {
     const sync = () => {
       const light = !document.documentElement.classList.contains("dark");
-      target.current.base = light
-        ? readColor("--canvas", "#fafaf9")
-        : // Deeper than --canvas on purpose: the hero is the one place the
-          // page is allowed to go darker than its own surface colour.
-          new THREE.Color("#050609");
+      // Exactly --canvas in both themes. Painting a deeper black than the
+      // section behind it drew the canvas's own rectangle onto the page: the
+      // element is only as wide as the stage, so the mismatch showed up as a
+      // hard-edged dark box behind the chart. Matching the page colour is
+      // what lets the scene end without an edge.
+      target.current.base = readColor("--canvas", light ? "#fafaf9" : "#07090f");
       target.current.glowA = readColor("--accent", "#4d8bf8");
       target.current.glowB = readColor("--positive", "#19c08a");
       // On white, the same intensity would read as two grey smudges.
-      target.current.intensity = light ? 0.05 : 0.15;
+      target.current.intensity = light ? 0.04 : 0.11;
       invalidate();
     };
 
@@ -168,20 +169,30 @@ function Field({ reduceMotion }: { reduceMotion: boolean }) {
     return () => observer.disconnect();
   }, [invalidate]);
 
-  useFrame((state, delta) => {
+  // Rendered on demand, not every frame.
+  //
+  // Measured in this harness at 1440x900: with the backdrop looping, the
+  // page's median frame gap was 119ms; with it removed, 29ms. That is
+  // software rasterisation exaggerating a full-screen shader, and on a real
+  // GPU it would be cheap — but the drift it was paying for is close to
+  // invisible at 0.11 intensity behind a candlestick chart, so it buys
+  // nothing at any price. The scene below has all the motion the hero needs.
+  //
+  // So `useFrame` only runs when something invalidates: the first paint, a
+  // theme change, a resize. The uniforms are set outright rather than eased,
+  // because a lerp needs a loop to converge and there is no longer one.
+  useEffect(() => {
+    invalidate();
+  }, [size.width, size.height, invalidate]);
+
+  useFrame(() => {
     const u = material.current?.uniforms;
     if (!u) return;
-
-    if (!reduceMotion) u.uTime.value += delta;
     u.uRes.value.set(size.width, size.height);
-
-    // Ease rather than snap: a hard colour cut on a full-screen element is
-    // the one thing that would make the theme switch look broken.
-    const k = Math.min(1, delta * 6);
-    (u.uBase.value as THREE.Color).lerp(target.current.base, k);
-    (u.uGlowA.value as THREE.Color).lerp(target.current.glowA, k);
-    (u.uGlowB.value as THREE.Color).lerp(target.current.glowB, k);
-    u.uIntensity.value += (target.current.intensity - u.uIntensity.value) * k;
+    (u.uBase.value as THREE.Color).copy(target.current.base);
+    (u.uGlowA.value as THREE.Color).copy(target.current.glowA);
+    (u.uGlowB.value as THREE.Color).copy(target.current.glowB);
+    u.uIntensity.value = target.current.intensity;
   });
 
   return (
@@ -204,16 +215,8 @@ function Field({ reduceMotion }: { reduceMotion: boolean }) {
 export function AmbientBackdrop({ className }: { className?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
-  const [reduceMotion, setReduceMotion] = useState(false);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setReduceMotion(query.matches);
-    apply();
-    query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
-  }, []);
 
   useEffect(() => {
     const node = host.current;
@@ -238,7 +241,7 @@ export function AmbientBackdrop({ className }: { className?: string }) {
       <Canvas
         // "never" while off-screen; on-demand when the user asked for less
         // motion, so it paints once and then sits idle.
-        frameloop={!visible ? "never" : reduceMotion ? "demand" : "always"}
+        frameloop={visible ? "demand" : "never"}
         dpr={[1, 1.5]}
         gl={{
           antialias: false,
@@ -248,12 +251,12 @@ export function AmbientBackdrop({ className }: { className?: string }) {
           stencil: false,
         }}
         onCreated={({ gl }) => {
-          gl.setClearColor("#050609", 1);
+          gl.setClearColor("#07090f", 1);
           setReady(true);
         }}
         style={{ width: "100%", height: "100%" }}
       >
-        <Field reduceMotion={reduceMotion} />
+        <Field />
       </Canvas>
     </div>
   );
