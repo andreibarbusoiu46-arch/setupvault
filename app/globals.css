@@ -16,6 +16,22 @@
   --surface-hover: #f4f4f5;
 
   /* Glass — polished, soft translucent white with delicate highlights */
+  /* Interactive glass: the material controls are cut from. Separate from
+     --glass because a control is touched and a card is not — it needs a
+     hover value, a pressed value and a readable foreground of its own. */
+  --glass-control: rgb(255 255 255 / 0.72);
+  --glass-control-hover: rgb(255 255 255 / 0.9);
+  --glass-control-active: rgb(255 255 255 / 0.96);
+  --glass-control-border: rgb(23 24 28 / 0.1);
+  --glass-control-specular: rgb(255 255 255 / 0.95);
+  /* A fall from the top edge. Without it the fill is one flat value and the
+     control reads as a painted shape rather than a lit surface. */
+  --glass-control-sheen-top: rgb(255 255 255 / 0.5);
+  --glass-control-sheen-bottom: rgb(255 255 255 / 0);
+  --glass-control-fg: #17181c;
+  /* What the surface falls back to with no backdrop-filter. */
+  --glass-control-solid: #f5f5f7;
+
   --glass: rgb(255 255 255 / 0.75);
   --glass-strong: rgb(255 255 255 / 0.95);
   --glass-border: rgb(0 0 0 / 0.05);
@@ -32,7 +48,6 @@
 
   /* Accents — modern fintech blue/indigo */
   --accent: #2563eb;
-  --accent-secondary: #4f46e5;
   --accent-hover: #1d4ed8;
   --accent-fg: #ffffff;
   --accent-soft: rgb(37 99 235 / 0.1);
@@ -97,6 +112,19 @@
   --surface-raised: #131926;
   --surface-hover: rgb(255 255 255 / 0.06);
 
+  --glass-control: rgb(255 255 255 / 0.1);
+  --glass-control-hover: rgb(255 255 255 / 0.16);
+  --glass-control-active: rgb(255 255 255 / 0.2);
+  --glass-control-border: rgb(255 255 255 / 0.16);
+  /* Stronger than its light counterpart in relative terms: on near-black a
+     subtle highlight simply disappears, and the first version rendered as a
+     flat grey pill. */
+  --glass-control-specular: rgb(255 255 255 / 0.32);
+  --glass-control-sheen-top: rgb(255 255 255 / 0.1);
+  --glass-control-sheen-bottom: rgb(255 255 255 / 0);
+  --glass-control-fg: #f5f5f7;
+  --glass-control-solid: #1a1f29;
+
   --glass: rgb(255 255 255 / 0.05);
   --glass-strong: rgb(255 255 255 / 0.08);
   --glass-border: rgb(255 255 255 / 0.10);
@@ -111,7 +139,6 @@
 
   /* Lifted from the light blue: #2563eb goes muddy on a dark canvas. */
   --accent: #4d8bf8;
-  --accent-secondary: #818cf8;
   --accent-hover: #74a5fa;
   --accent-fg: #07101f;
   --accent-soft: rgb(77 139 248 / 0.16);
@@ -190,7 +217,6 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 12px);
 
-  --color-accent-secondary: var(--accent-secondary);
   --color-glass-highlight: var(--glass-highlight);
 
   --shadow-elevated: var(--elevated);
@@ -350,6 +376,50 @@
 
    Unlike `.glass-strong` this one may be translucent, because nothing has to
    be occluded behind it. */
+/* A control cut from glass.
+
+   Kept outside @layer so Tailwind cannot tree-shake it, and deliberately
+   carrying no backdrop-filter of its own: this build strips a hand-written
+   one, so the blur arrives as a utility on the element
+   (`backdrop-blur-xl backdrop-saturate-150`) while everything that gives the
+   material its shape lives here.
+
+   Four layers, as with the cards: a translucent fill that lets the backdrop
+   tint it, a specular line along the top edge where a bevel would catch the
+   light, a hairline that is neutral rather than coloured, and a contact
+   shadow under a wider diffuse one. */
+.glass-control {
+  background-color: var(--glass-control);
+  background-image: linear-gradient(
+    180deg,
+    var(--glass-control-sheen-top),
+    var(--glass-control-sheen-bottom)
+  );
+  border: 1px solid var(--glass-control-border);
+  color: var(--glass-control-fg);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-control-specular),
+    0 1px 2px -1px rgb(16 24 40 / 0.18),
+    0 10px 26px -12px rgb(16 24 40 / 0.34);
+}
+
+.glass-control:hover {
+  background-color: var(--glass-control-hover);
+}
+
+.glass-control:active {
+  background-color: var(--glass-control-active);
+}
+
+/* Where the backdrop cannot be blurred the surface would be a pale wash over
+   whatever it sits on, so it becomes opaque instead. The material changes;
+   the legibility does not. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-control {
+    background-color: var(--glass-control-solid);
+  }
+}
+
 .glass-card {
   background-color: color-mix(in srgb, var(--surface) 93%, transparent);
   background-image: linear-gradient(

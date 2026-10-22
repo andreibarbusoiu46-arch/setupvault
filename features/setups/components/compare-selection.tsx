@@ -109,8 +109,7 @@ export function CompareToggle({
         selected
           ? "border-accent bg-accent text-accent-fg"
           : cn(
-              "border-black/[0.08] bg-white/75 text-fg-subtle backdrop-blur-xl",
-              "dark:border-white/[0.14] dark:bg-black/55",
+              "glass-control backdrop-blur-xl backdrop-saturate-150",
               "[@media(hover:hover)and(pointer:fine)]:hover:border-accent/60",
               "[@media(hover:hover)and(pointer:fine)]:hover:text-fg",
             ),

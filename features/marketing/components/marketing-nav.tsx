@@ -22,13 +22,14 @@ const LINKS = [
 const ENTER = [0.16, 1, 0.3, 1] as const;
 const PRESS = { type: "spring", stiffness: 420, damping: 30, mass: 0.7 } as const;
 
-/** The one vivid thing in the chrome: an indigo-to-violet pill with a
- *  specular top edge and its own coloured shadow, so it reads as lit rather
- *  than filled. */
+/** The one vivid thing in the chrome, and it is the brand's blue rather than
+ *  the indigo-to-violet it used to be. Lit from the top: a specular edge, a
+ *  vertical fall from a lighter to a deeper blue, and a shadow tinted with
+ *  the same hue so the pill reads as a lamp rather than a filled shape. */
 const PILL = [
-  "rounded-full bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white",
-  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.22),0_8px_24px_-8px_rgb(99_102_241/0.85)]",
-  "hover:brightness-110",
+  "rounded-full bg-gradient-to-b from-[#5f97ff] to-[#3f7ae8] text-white",
+  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.3),0_1px_2px_-1px_rgb(16_24_40/0.4),0_10px_28px_-10px_rgb(79_140_255/0.55)]",
+  "hover:from-[#6fa2ff] hover:to-[#4a84f0]",
 ].join(" ");
 
 export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) {
@@ -215,10 +216,9 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
             className={cn(
               // 44px on a phone: the smallest target a thumb hits reliably.
               "inline-flex size-11 items-center justify-center rounded-full",
-              "border border-black/[0.07] bg-black/[0.03] backdrop-blur-2xl",
-              "dark:border-white/[0.07] dark:bg-white/[0.03]",
-              "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.5)] dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]",
-              "text-fg-muted transition-colors duration-300 hover:text-fg",
+              // Glass, from the shared material rather than a bespoke stack.
+              "glass-control backdrop-blur-xl backdrop-saturate-150",
+              "transition-colors duration-300",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             )}
           >

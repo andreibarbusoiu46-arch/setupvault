@@ -65,14 +65,11 @@ export function ThemeToggle({ className }: { className?: string }) {
         // 44px on a phone, 40 once there is a pointer: the smallest target a
         // thumb hits reliably is larger than the smallest a cursor does.
         "group relative inline-flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full md:size-10",
-        // Frosted crystal: a near-transparent fill, a hairline that catches
-        // light at the top, and real blur from Tailwind's own utility — a
-        // hand-written backdrop-filter is stripped by the build.
-        "border border-black/[0.07] bg-black/[0.03] backdrop-blur-2xl",
-        "dark:border-white/[0.07] dark:bg-white/[0.03]",
-        "text-fg-muted shadow-[inset_0_1px_0_0_rgb(255_255_255/0.5)] dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]",
+        // The shared glass material rather than a fill, a border and a
+        // highlight re-specified here. Blur stays a utility because the
+        // build strips a hand-written backdrop-filter out of custom CSS.
+        "glass-control backdrop-blur-xl backdrop-saturate-150",
         "transition-[color,border-color,background-color] duration-300",
-        "hover:text-fg hover:border-black/[0.12] dark:hover:border-white/[0.14]",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         className,
       )}
@@ -80,7 +77,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       {/* A faint bloom that only appears on hover, under the icon. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-full bg-accent/0 transition-colors duration-500 group-hover:bg-accent/[0.08]"
+        className="pointer-events-none absolute inset-0 rounded-full bg-white/0 transition-colors duration-500 group-hover:bg-white/[0.07]"
       />
 
       <Sun className="size-[18px] rotate-0 scale-100 opacity-100 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:size-[17px] dark:-rotate-90 dark:scale-0 dark:opacity-0" />

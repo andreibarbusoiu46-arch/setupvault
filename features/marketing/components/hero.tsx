@@ -132,9 +132,9 @@ export function Hero() {
                 size="lg"
                 className={[
                   "sv-sheen relative h-11 overflow-hidden rounded-full px-6 text-[14.5px] font-semibold",
-                  "bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white",
-                  "shadow-[0_1px_0_0_rgb(255_255_255/0.22)_inset,0_10px_30px_-10px_rgb(99_102_241/0.9)]",
-                  "hover:brightness-110",
+                  "bg-gradient-to-b from-[#5f97ff] to-[#3f7ae8] text-white",
+                  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.3),0_1px_2px_-1px_rgb(16_24_40/0.4),0_12px_32px_-12px_rgb(79_140_255/0.6)]",
+                  "hover:from-[#6fa2ff] hover:to-[#4a84f0]",
                 ].join(" ")}
               >
                 {/* "Start free", not "Start free trial": the free tier does
@@ -143,12 +143,9 @@ export function Hero() {
                 <Link href={ROUTES.signup}>Start free →</Link>
               </Button>
 
-              <Link
-                href="#how"
-                className="text-[14.5px] text-fg-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
-              >
-                Explore the product
-              </Link>
+              <Button asChild variant="glass" size="lg" className="h-11 rounded-full px-6 text-[14.5px] font-medium">
+                <Link href="#how">Explore the product</Link>
+              </Button>
             </div>
           </Reveal>
 
