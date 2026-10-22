@@ -25,7 +25,7 @@ export function Cta() {
             let the record build itself from there.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg">
+            <Button asChild size="lg" variant="solid">
               <Link href={ROUTES.signup}>Start free</Link>
             </Button>
             <Button asChild size="lg" variant="secondary">

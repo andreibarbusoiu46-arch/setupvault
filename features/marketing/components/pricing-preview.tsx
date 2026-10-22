@@ -185,7 +185,7 @@ export function PricingPreview() {
           </ul>
 
           <div className="mt-8 pt-1 lg:mt-auto">
-            <Button asChild size="lg" fullWidth>
+            <Button asChild size="lg" fullWidth variant="solid">
               <Link href={ROUTES.signup}>Start free</Link>
             </Button>
             <p className="mt-3 text-center text-[12.5px] leading-snug text-fg-subtle">

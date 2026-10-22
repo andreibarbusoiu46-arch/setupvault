@@ -52,7 +52,7 @@ export function BuildingInPublic() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button asChild size="lg">
+            <Button asChild size="lg" variant="solid">
               <Link href={ROUTES.signup}>Start free</Link>
             </Button>
             <Button asChild size="lg" variant="outline">

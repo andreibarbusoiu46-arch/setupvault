@@ -13,6 +13,10 @@ const buttonVariants = cva(
       variant: {
         primary:
           "bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_1px_0_0_rgb(255_255_255/0.14)_inset]",
+        // The primary action, hue-free: near-white on dark, near-black on
+        // light. White on a white page would disappear, so it inverts
+        // instead of staying white.
+        solid: "cta-solid",
         // Liquid glass. The blur is a utility rather than part of
         // `.glass-control`, because this build strips a hand-written
         // backdrop-filter out of custom CSS. Saturation is what stops the

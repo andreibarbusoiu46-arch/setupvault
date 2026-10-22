@@ -22,15 +22,10 @@ const LINKS = [
 const ENTER = [0.16, 1, 0.3, 1] as const;
 const PRESS = { type: "spring", stiffness: 420, damping: 30, mass: 0.7 } as const;
 
-/** The one vivid thing in the chrome, and it is the brand's blue rather than
- *  the indigo-to-violet it used to be. Lit from the top: a specular edge, a
- *  vertical fall from a lighter to a deeper blue, and a shadow tinted with
- *  the same hue so the pill reads as a lamp rather than a filled shape. */
-const PILL = [
-  "rounded-full bg-gradient-to-b from-[#5f97ff] to-[#3f7ae8] text-white",
-  "shadow-[inset_0_1px_0_0_rgb(255_255_255/0.3),0_1px_2px_-1px_rgb(16_24_40/0.4),0_10px_28px_-10px_rgb(79_140_255/0.55)]",
-  "hover:from-[#6fa2ff] hover:to-[#4a84f0]",
-].join(" ");
+/** The primary action in the chrome. No hue: near-white on the dark page,
+ *  near-black on the light one. Prominent by contrast rather than by
+ *  colour, which leaves the blue free to mean something. */
+const PILL = ["cta-solid rounded-full"].join(" ");
 
 export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [open, setOpen] = useState(false);
