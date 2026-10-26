@@ -485,7 +485,7 @@ export function HowItWorks() {
               <span
                 className={cn(
                   "stat flex size-9 shrink-0 items-center justify-center rounded-full",
-                  "border border-accent/25 bg-accent-soft text-[14px] text-accent",
+                  "border border-accent/25 bg-accent-soft text-[14px] text-accent-on-soft",
                 )}
                 aria-hidden="true"
               >

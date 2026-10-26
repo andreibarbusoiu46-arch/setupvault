@@ -75,7 +75,7 @@ export function BuildingInPublic() {
                   "mt-px flex size-5 shrink-0 items-center justify-center rounded-full",
                   item.done
                     ? "bg-positive-soft text-positive"
-                    : "bg-accent-soft text-accent",
+                    : "bg-accent-soft text-accent-on-soft",
                 )}
               >
                 {item.done ? (

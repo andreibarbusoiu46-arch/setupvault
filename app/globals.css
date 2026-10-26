@@ -62,12 +62,26 @@
   --accent-hover: #1d4ed8;
   --accent-fg: #ffffff;
   --accent-soft: rgb(37 99 235 / 0.1);
+  /* Accent text sitting ON the accent tint. --accent itself measures 4.45:1
+     there — a hair under the floor for the 12px these chips use — because the
+     tint lifts the background towards the text. One step down the ramp gives
+     5.77:1. It happens to equal --accent-hover today; it is a separate token
+     because it answers a different question, and the two will not always
+     move together. */
+  --accent-on-soft: #1d4ed8;
 
-  /* Trading semantics */
-  --positive: #059669;
-  --positive-soft: rgb(5 150 105 / 0.1);
-  --negative: #e11d48;
-  --negative-soft: rgb(225 29 72 / 0.1);
+  /* Trading semantics.
+     One step darker than the obvious emerald-600/rose-600 pair, because the
+     badges set them at 12px and a badge fills its own background at 10%:
+     #059669 measured 3.67:1 on the row and 3.26:1 inside its own pill, both
+     under the 4.5 a 12px glyph needs. These measure 5.34 / 4.65 and
+     6.12 / 5.18. Meaning never rests on the hue either way — every badge
+     carries its word, which is what makes the pair survive deuteranopia,
+     where this green and this red sit ΔE 2.6 apart. */
+  --positive: #047857;
+  --positive-soft: rgb(4 120 87 / 0.1);
+  --negative: #be123c;
+  --negative-soft: rgb(190 18 60 / 0.1);
   --neutral: #52525b;
 
   --destructive: #e11d48;
@@ -152,13 +166,18 @@
 
   --fg: #f3f5f9;
   --fg-muted: #a2aaba;
-  --fg-subtle: #737c8e;
+  /* Was #737c8e, which measured 4.19:1 against the raised surface — under the
+     floor for the 13px it is used at. 5.12:1 here, still clearly a tier below
+     --fg-muted. */
+  --fg-subtle: #828b9b;
 
   /* Lifted from the light blue: #2563eb goes muddy on a dark canvas. */
   --accent: #4d8bf8;
   --accent-hover: #74a5fa;
   --accent-fg: #07101f;
   --accent-soft: rgb(77 139 248 / 0.16);
+  /* 4.46:1 on the tint for --accent; 5.96:1 for this. */
+  --accent-on-soft: #74a5fa;
 
   --positive: #19c08a;
   --positive-soft: rgb(25 192 138 / 0.16);
@@ -216,6 +235,7 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-on-soft: var(--accent-on-soft);
 
   --color-positive: var(--positive);
   --color-positive-soft: var(--positive-soft);
@@ -712,4 +732,28 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sv-sheen::after { animation: none; opacity: 0; }
+}
+
+/* The three dots after "Drafting". They are a pseudo-element rather than three
+   spans so the row's own markup stays clean, and the animation steps between
+   whole glyphs instead of fading each one — a fading dot reads as a rendering
+   artefact, a stepped one reads as waiting. `ch` units keep the width fixed at
+   three characters so nothing reflows as dots arrive. */
+@keyframes sv-ellipsis {
+  0%,  24% { content: "."; }
+  25%, 49% { content: ".."; }
+  50%, 74% { content: "..."; }
+  75%, 100% { content: ""; }
+}
+
+.sv-ellipsis::after {
+  content: "...";
+  display: inline-block;
+  width: 3ch;
+  text-align: left;
+  animation: sv-ellipsis 1.4s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-ellipsis::after { animation: none; }
 }

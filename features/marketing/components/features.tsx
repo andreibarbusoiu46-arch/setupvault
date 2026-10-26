@@ -205,7 +205,7 @@ function TaggedRecord() {
             className={cn(
               "rounded-md px-2.5 py-1 text-[12px] tracking-tight",
               index === 0
-                ? "bg-accent-soft text-accent"
+                ? "bg-accent-soft text-accent-on-soft"
                 : "bg-black/[0.04] text-fg-muted dark:bg-white/[0.06]",
             )}
           >

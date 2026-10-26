@@ -96,7 +96,7 @@ function Segmented<T extends string>({
               className={cn(
                 "rounded-lg border px-3 py-1.5 text-sm transition-colors",
                 active
-                  ? "border-accent/50 bg-accent-soft text-accent"
+                  ? "border-accent/50 bg-accent-soft text-accent-on-soft"
                   : "border-border bg-surface-raised text-fg-muted hover:bg-surface-hover hover:text-fg",
               )}
             >
@@ -301,7 +301,7 @@ export function SetupsToolbar({
                 type="button"
                 onClick={() => clearChip(chip.key)}
                 aria-label={`Remove filter ${chip.label}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent/35 bg-accent-soft py-1 pl-3 pr-2 text-xs text-accent transition-colors hover:border-accent/60"
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/35 bg-accent-soft py-1 pl-3 pr-2 text-xs text-accent-on-soft transition-colors hover:border-accent/60"
               >
                 {chip.label}
                 <X className="size-3" aria-hidden="true" />
