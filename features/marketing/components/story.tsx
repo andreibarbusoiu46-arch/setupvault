@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/features/marketing/components/reveal";
 import { Section, SectionHeading } from "@/features/marketing/components/section";
-import { LEVELS, RISK_REWARD_LABEL, SESSION } from "@/features/marketing/data/nq-session";
+import { CaptureChart } from "@/features/marketing/components/capture-chart";
+import { RISK_REWARD, SESSION } from "@/features/marketing/data/nq-session";
 import {
   EXPECTANCY_LABEL,
   NET_R_LABEL,
@@ -80,20 +81,25 @@ function IsometricStage({
       )}
       style={{ WebkitPerspective: "1200px", perspective: "1200px" }}
     >
+      {/* The breakpoint scale lives here rather than on the animated node:
+          framer writes `scale` into the same transform a `scale-[0.8]`
+          utility would, and whichever is applied last silently wins. */}
+      <div className="w-full scale-[0.8] min-[400px]:scale-[0.88] sm:scale-100">
       <motion.div
         // Visible from the first paint: `opacity: 0` here would be
         // server-rendered inline and lift only once the script hydrates, which
         // is how these mockups end up as blank gaps on a slow device.
-        initial={{ opacity: 1, rotateX: 22, rotateY: reverse ? -16 : 16 }}
+        initial={{ opacity: 1, scale: 0.95, rotateX: 22, rotateY: reverse ? -16 : 16 }}
         whileInView={{
           opacity: 1,
+          scale: 1,
           rotateX: 13,
           rotateY: reverse ? -21 : 21,
           rotateZ: reverse ? 3.5 : -3.5,
         }}
         viewport={{ once: true, amount: 0.15, margin: "50px" }}
         transition={{ duration: 1.2, ease: ENTER }}
-        className="relative w-full max-w-3xl origin-center scale-[0.8] min-[400px]:scale-[0.88] sm:w-[104%] sm:scale-100"
+        className="relative w-full max-w-3xl origin-center sm:w-[104%]"
         style={STAGE_3D}
       >
         <motion.div
@@ -109,6 +115,7 @@ function IsometricStage({
           {children}
         </motion.div>
       </motion.div>
+      </div>
     </div>
   );
 }
@@ -161,129 +168,23 @@ function FloatingCard({
 /* 1 — Capture                                                                */
 /* ========================================================================== */
 
-const CAPTURE_CANDLES = [
-  { x: 40, top: 96, height: 44, bull: false },
-  { x: 72, top: 128, height: 52, bull: false },
-  { x: 104, top: 168, height: 26, bull: true, sweep: true },
-  { x: 136, top: 120, height: 62, bull: true },
-  { x: 168, top: 80, height: 52, bull: true },
-  { x: 200, top: 52, height: 38, bull: true },
-  { x: 232, top: 40, height: 30, bull: true },
-];
-
 function CaptureMockup() {
   return (
     <Panel className="flex h-72 w-full sm:h-80">
-      <div className="flex w-10 flex-col items-center gap-4 border-r border-black/[0.05] bg-canvas py-3 text-fg-muted/50 dark:border-white/[0.06]">
-        {[0, 1, 2, 3].map((i) => (
+      {/* The platform's own left rail. */}
+      <div className="flex w-8 flex-col items-center gap-3 border-r border-black/[0.05] bg-canvas py-2.5 dark:border-white/[0.06]">
+        {[0, 1, 2, 3, 4].map((i) => (
           <span
             key={i}
             className={cn(
-              "size-4 rounded-[5px]",
+              "size-3.5 rounded-[4px]",
               i === 0 ? "bg-accent/70" : "bg-fg-subtle/20",
             )}
           />
         ))}
       </div>
 
-      <div className="relative min-w-0 flex-1">
-        <div className="flex items-center gap-2 border-b border-black/[0.05] px-3 py-2 dark:border-white/[0.06]">
-          <span className="text-[12px] font-semibold tracking-tight text-fg">
-            {SESSION.label}
-          </span>
-          <span className="numeric text-[10.5px] text-accent">15m</span>
-          <span className="numeric ml-auto text-[10.5px] text-fg-subtle">
-            {LEVELS.live}
-          </span>
-        </div>
-
-        <svg
-          viewBox="0 0 280 200"
-          width="280"
-          height="200"
-          preserveAspectRatio="none"
-          className="block h-[calc(100%-2.1rem)] w-full"
-          aria-hidden="true"
-        >
-          {CAPTURE_CANDLES.map((candle) => (
-            <g key={candle.x}>
-              <line
-                x1={candle.x}
-                x2={candle.x}
-                y1={candle.top - 14}
-                y2={candle.top + candle.height + (candle.sweep ? 46 : 14)}
-                className={candle.bull ? "stroke-positive" : "stroke-negative"}
-                strokeWidth="1.5"
-              />
-              <rect
-                x={candle.x - 4}
-                y={candle.top}
-                width="8"
-                height={candle.height}
-                rx="1.5"
-                className={candle.bull ? "fill-positive" : "fill-negative"}
-              />
-            </g>
-          ))}
-
-          {/* The long-position tool: reward above the entry, risk below it. */}
-          <rect
-            x="120"
-            y="36"
-            width="150"
-            height="96"
-            className="fill-positive-soft stroke-positive/50"
-            strokeWidth="1.5"
-          />
-          <rect
-            x="120"
-            y="132"
-            width="150"
-            height="32"
-            className="fill-negative-soft stroke-negative/50"
-            strokeWidth="1.5"
-          />
-          <line
-            x1="108"
-            x2="278"
-            y1="132"
-            y2="132"
-            className="stroke-fg-muted"
-            strokeWidth="1.2"
-            strokeDasharray="4 4"
-          />
-          {/* The label sits on its own plate: the candles run straight through
-              this part of the box, and a number half-hidden behind one is
-              worse than no number. */}
-          <rect
-            x="166"
-            y="72"
-            width="58"
-            height="24"
-            rx="5"
-            className="fill-surface stroke-positive/30"
-            strokeWidth="1"
-          />
-          <text
-            x="195"
-            y="89"
-            textAnchor="middle"
-            className="fill-positive font-mono text-[15px] font-semibold"
-          >
-            {RISK_REWARD_LABEL}
-          </text>
-        </svg>
-      </div>
-
-      <div className="numeric flex w-12 flex-col justify-between border-l border-black/[0.05] bg-canvas py-3 text-center text-[8.5px] text-fg-subtle dark:border-white/[0.06]">
-        <span>{LEVELS.target}</span>
-        <span>{LEVELS.target - 75}</span>
-        <span className="mx-1 rounded bg-accent py-0.5 text-accent-fg">
-          {LEVELS.live}
-        </span>
-        <span>{LEVELS.entry}</span>
-        <span>{LEVELS.stop}</span>
-      </div>
+      <CaptureChart />
     </Panel>
   );
 }
@@ -292,22 +193,41 @@ function CaptureMockup() {
 /* 2 — Organize                                                               */
 /* ========================================================================== */
 
+/**
+ * Four records, with their outcomes computed rather than typed.
+ *
+ * The first row is the session the chart beside step 1 is drawing, so the two
+ * mockups agree: the same play, the same R multiple, derived from the same
+ * levels. The rest carry their own geometry for the same reason — a library
+ * whose numbers do not survive arithmetic is the thing this product claims to
+ * replace.
+ */
 const VAULT_ROWS = [
-  { pair: SESSION.label, play: "London breakout", r: `+${RISK_REWARD_LABEL}`, win: true },
-  { pair: "EURUSD", play: "Asian range fade", r: "−1.0R", win: false },
-  { pair: "XAUUSD", play: "Liquidity sweep", r: "+1.8R", win: true },
-  { pair: "NQ100", play: "Opening drive", r: "+2.4R", win: true },
-];
+  {
+    pair: SESSION.label,
+    play: "London breakout",
+    ratio: RISK_REWARD,
+    win: true,
+  },
+  { pair: "EURUSD", play: "Asian range fade", ratio: -1, win: false },
+  { pair: "XAUUSD", play: "Liquidity sweep", ratio: 1.8, win: true },
+  { pair: "NQ100", play: "Opening drive", ratio: 2.4, win: true },
+] as const;
+
+/** "+4.2R" / "−1.0R", with a real minus sign rather than a hyphen. */
+function rLabel(ratio: number) {
+  return `${ratio < 0 ? "\u2212" : "+"}${Math.abs(ratio).toFixed(1)}R`;
+}
 
 function OrganizeMockup() {
   return (
     <div className="relative flex w-full items-center justify-center">
       {/* The two records behind the one in front. */}
-      <div className="absolute h-[16rem] w-[78%] translate-x-5 translate-y-9 rounded-2xl border border-black/[0.06] bg-surface opacity-40 dark:border-white/[0.07]" />
-      <div className="absolute h-[16rem] w-[86%] translate-x-2.5 translate-y-4 rounded-2xl border border-black/[0.06] bg-surface opacity-70 dark:border-white/[0.07]" />
+      <div className="absolute inset-y-0 w-[78%] translate-x-5 translate-y-9 rounded-2xl border border-black/[0.06] bg-surface opacity-40 dark:border-white/[0.07]" />
+      <div className="absolute inset-y-0 w-[86%] translate-x-2.5 translate-y-4 rounded-2xl border border-black/[0.06] bg-surface opacity-70 dark:border-white/[0.07]" />
 
       <Panel className="relative w-[94%]">
-        <div className="flex items-center gap-2 border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
+        <div className="flex items-center gap-2 border-b border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
           <span className="text-[12.5px] font-semibold tracking-tight text-fg">
             Your library
           </span>
@@ -316,23 +236,58 @@ function OrganizeMockup() {
           </span>
         </div>
 
+        {/* Search. Inert, and it reads as inert: no caret, no focus ring, no
+            cursor-text. A mockup that looks typeable and is not is worse
+            than one that plainly is not. */}
+        <div className="border-b border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
+          <div className="flex h-7 items-center gap-2 rounded-md border border-border bg-canvas px-2 text-[11px] text-fg-subtle">
+            <Search className="size-3 shrink-0" aria-hidden="true" />
+            <span>Search setups…</span>
+            <span className="numeric ml-auto rounded border border-border px-1 text-[9px]">
+              /
+            </span>
+          </div>
+        </div>
+
         <ul className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-          {VAULT_ROWS.map((row) => (
-            <li key={row.play} className="flex items-center gap-3 px-4 py-3">
-              <span className="size-7 shrink-0 rounded-md bg-accent-soft" />
-              <div className="min-w-0">
-                <p className="truncate text-[12.5px] font-medium tracking-tight text-fg">
+          {VAULT_ROWS.map((row, index) => (
+            <li
+              key={row.play}
+              // Staggered on scroll, by CSS. Four rows fading in from zero
+              // under an IntersectionObserver, inside a preserve-3d stage, is
+              // the one combination this file already warns against: a miss
+              // leaves the rows permanently blank. This animation has
+              // `opacity: 1` as its base state, so a timeline that never runs
+              // simply shows the rows.
+              className="sv-reveal-scroll flex items-center gap-3 px-4 py-2.5"
+              style={{ "--sv-delay": `${index * 90}ms` } as React.CSSProperties}
+            >
+              <span
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  row.win ? "bg-positive" : "bg-negative",
+                )}
+                aria-hidden="true"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="numeric truncate text-[12.5px] font-semibold tracking-tight text-fg">
                   {row.pair}
                 </p>
                 <p className="truncate text-[11px] text-fg-subtle">{row.play}</p>
               </div>
+              {/* The outcome carries its sign and its word-shape, not just a
+                  hue: this green and this red sit dE 2.6 apart under
+                  deuteranopia, so the leading + or minus is what actually
+                  separates them. */}
               <span
                 className={cn(
-                  "stat ml-auto text-[13px]",
-                  row.win ? "text-positive" : "text-negative",
+                  "numeric shrink-0 rounded-full px-2 py-0.5 text-[11.5px] font-medium",
+                  row.win
+                    ? "bg-positive-soft text-positive"
+                    : "bg-negative-soft text-negative",
                 )}
               >
-                {row.r}
+                {rLabel(row.ratio)}
               </span>
             </li>
           ))}
@@ -432,7 +387,7 @@ const STEPS = [
     // actually looks like. The other two had cards for symmetry, which is not
     // a reason, and one of them landed on the rows it was annotating.
     float: (
-      <FloatingCard className="w-full max-w-[20rem] lg:absolute lg:bottom-2 lg:-left-10 lg:z-10 lg:w-[14.5rem]">
+      <FloatingCard className="sv-slide-in w-full max-w-[20rem] lg:absolute lg:bottom-2 lg:-left-10 lg:z-10 lg:w-[14.5rem]">
         <p className="text-[11.5px] font-semibold tracking-tight text-accent">
           Setup thesis
         </p>

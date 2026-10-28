@@ -703,6 +703,32 @@
   }
 }
 
+/* A card arriving from the side, for the one annotation that floats beside a
+   mockup. Same contract as the entrances above: `opacity: 1` is the base
+   state, the animation only adds motion, and a browser with no scroll-driven
+   animations plays it once on load rather than not at all. */
+@keyframes sv-slide-in {
+  from { opacity: 0; transform: translateX(-26px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.sv-slide-in {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sv-slide-in {
+    animation: sv-slide-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--sv-delay, 0ms);
+    animation-timeline: view();
+    animation-range: entry 0% cover 26%;
+  }
+
+  @supports not (animation-timeline: view()) {
+    .sv-slide-in { animation-timeline: auto; }
+  }
+}
+
 /* --------------------------------------------------------------------------
    THE PRICE LADDER
    The page's structural signature. Every trading platform draws a vertical
