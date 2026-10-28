@@ -303,11 +303,29 @@ function Row({
   row,
   fill,
   index,
+  live,
 }: {
   row: (typeof ROWS)[number];
   fill: Fill;
   index: number;
+  /**
+   * False on the server and on the first client render, true afterwards.
+   *
+   * framer-motion serialises `initial` as an inline style, so every element
+   * below went out in the server HTML as `opacity: 0` and only became
+   * visible once hydration ran. The structure and the text were in the
+   * document — which is why a grep for the copy passed — but a reader with
+   * no JavaScript, or on a slow connection before hydration, got three rows
+   * of blank space where the titles should be.
+   *
+   * `initial={false}` tells framer to start at the animate values instead,
+   * which is exactly right for a server render. It is applied only while
+   * `live` is false, so the entrance animations still play normally once
+   * rows start mounting mid-loop.
+   */
+  live: boolean;
 }) {
+  const enter = <T,>(from: T) => (live ? from : false);
   const { sample, ratio, score } = row;
   const Thumb = sample.Thumb;
 
@@ -321,7 +339,7 @@ function Row({
           <motion.div
             layoutId={`pp-thumb-${index}`}
             className="absolute inset-0 overflow-hidden rounded-md border border-border bg-canvas-subtle"
-            initial={{ scale: 0.92 }}
+            initial={enter({ scale: 0.92 })}
             animate={{ scale: 1 }}
             transition={POP}
           >
@@ -338,7 +356,7 @@ function Row({
       <div className="min-w-0 flex-1">
         {fill >= 3 ? (
           <motion.div
-            initial={{ opacity: 0, transform: "translateX(-6px)" }}
+            initial={enter({ opacity: 0, transform: "translateX(-6px)" })}
             animate={{ opacity: 1, transform: "translateX(0px)" }}
             transition={SOFT}
           >
@@ -350,7 +368,7 @@ function Row({
                 narrow layout — it is the same fields, re-ranked. */}
             <motion.p
               className="mt-1 flex items-center gap-2 truncate text-xs text-fg-subtle"
-              initial={{ opacity: 0 }}
+              initial={enter({ opacity: 0 })}
               animate={{ opacity: 1 }}
               transition={{ ...SOFT, delay: 0.07 }}
             >
@@ -376,7 +394,7 @@ function Row({
 
       <span className="numeric hidden w-12 shrink-0 text-right text-xs text-fg-muted sm:block sm:w-14">
         {fill >= 3 ? (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SOFT}>
+          <motion.span initial={enter({ opacity: 0 })} animate={{ opacity: 1 }} transition={SOFT}>
             {ratio ?? "—"}
           </motion.span>
         ) : (
@@ -392,7 +410,7 @@ function Row({
             {score.scorable ? (
               <motion.span
                 className="hidden sm:inline-flex"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={enter({ opacity: 0, scale: 0.9 })}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={SOFT}
               >
@@ -403,7 +421,7 @@ function Row({
               </motion.span>
             ) : null}
             <motion.span
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={enter({ scale: 0.9, opacity: 0 })}
               animate={{ scale: 1, opacity: 1 }}
               transition={POP}
             >
@@ -435,10 +453,12 @@ function ScoreMeter({
   average,
   grade,
   className,
+  live,
 }: {
   average: number;
   grade: string;
   className?: string;
+  live: boolean;
 }) {
   return (
     <div className={className}>
@@ -447,7 +467,7 @@ function ScoreMeter({
         <motion.span
           key={average}
           className="stat text-[1.35rem] leading-none text-fg"
-          initial={{ opacity: 0, transform: "translateY(4px)" }}
+          initial={live ? { opacity: 0, transform: "translateY(4px)" } : false}
           animate={{ opacity: 1, transform: "translateY(0px)" }}
           transition={SOFT}
         >
@@ -607,6 +627,7 @@ export function ProductPreview() {
               <ScoreMeter
                 average={average}
                 grade={grade}
+                live={hydrated}
                 className="mt-auto rounded-xl border border-border bg-surface p-3"
               />
             </div>
@@ -649,7 +670,13 @@ export function ProductPreview() {
               {/* Rows */}
               <div className="divide-y divide-border bg-surface/40">
                 {ROWS.map((row, index) => (
-                  <Row key={row.sample.title} row={row} fill={beat.rows[index]} index={index} />
+                  <Row
+                    key={row.sample.title}
+                    row={row}
+                    fill={beat.rows[index]}
+                    index={index}
+                    live={hydrated}
+                  />
                 ))}
               </div>
 
@@ -658,6 +685,7 @@ export function ProductPreview() {
               <ScoreMeter
                 average={average}
                 grade={grade}
+                live={hydrated}
                 className="border-t border-border bg-surface px-4 py-3 md:hidden"
               />
 

@@ -70,6 +70,17 @@
      move together. */
   --accent-on-soft: #1d4ed8;
 
+  /* The sphere in the problem cards: a lit body described as four stops of
+     one light, so the same markup renders as a ball in either theme rather
+     than as a disc that happens to have a gradient. `hi` is the lit cap,
+     `mid` the body, `lo` the terminator falling into shadow, `rim` the
+     bounce coming back up off the card. In light mode the whole ramp lifts,
+     because a dark sphere on a white card reads as a hole. */
+  --orb-hi: #93b6ff;
+  --orb-mid: #3b74e8;
+  --orb-lo: #16337a;
+  --orb-rim: rgb(255 255 255 / 0.5);
+
   /* Trading semantics.
      One step darker than the obvious emerald-600/rose-600 pair, because the
      badges set them at 12px and a badge fills its own background at 10%:
@@ -178,6 +189,11 @@
   --accent-soft: rgb(77 139 248 / 0.16);
   /* 4.46:1 on the tint for --accent; 5.96:1 for this. */
   --accent-on-soft: #74a5fa;
+
+  --orb-hi: #a8c6ff;
+  --orb-mid: #3f7bf0;
+  --orb-lo: #0b1c48;
+  --orb-rim: rgb(255 255 255 / 0.35);
 
   --positive: #19c08a;
   --positive-soft: rgb(25 192 138 / 0.16);
