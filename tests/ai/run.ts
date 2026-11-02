@@ -9,6 +9,8 @@ import { reviewOcrLevels } from "../../features/ai/utils/ocr-validation.ts";
 import { buildInputHash } from "../../features/ai/utils/input-hash.ts";
 import { extractJson } from "../../lib/ai/json.ts";
 import { canUseFeature, requiredTier, tierLimit } from "../../lib/feature-access/index.ts";
+import { toGeminiSchema, translate, isTransient } from "../../lib/ai/gemini.ts";
+import { ApiError } from "@google/genai";
 
 let fails = 0;
 const check = (n: string, a: unknown, e: unknown) => {
@@ -161,5 +163,82 @@ check("pro unlocks auto-tagging", canUseFeature("pro", "ai_auto_tagging"), true)
 check("auto-tagging requires pro", requiredTier("ai_auto_tagging"), "pro");
 check("free monthly cap", tierLimit("free", "analyses"), 15);
 check("elite unmetered", tierLimit("elite", "analyses"), null);
+
+// --- Gemini: the schema we actually send -----------------------------------
+//
+// This is the risky half of the provider, because it is the part that leaves
+// the process. Gemini accepts a subset of JSON Schema, so a keyword Zod emits
+// and Gemini rejects is a 400 on every single request — and it would only
+// show up against the live API, where it costs a round trip to find out.
+const GEMINI_SCHEMAS = [
+  ["setup analysis", setupAnalysisSchema],
+  ["suggested tags", suggestedTagsSchema],
+  ["ocr levels", ocrLevelsSchema],
+  ["semantic query", semanticQuerySchema],
+  ["score explanation", scoreExplanationSchema],
+] as const;
+
+for (const [name, schema] of GEMINI_SCHEMAS) {
+  let json: string;
+  try {
+    json = JSON.stringify(toGeminiSchema(schema as never));
+  } catch (error) {
+    yes(`gemini schema: ${name} converts`, false);
+    console.log(`      ${(error as Error).message.slice(0, 140)}`);
+    continue;
+  }
+
+  yes(`gemini schema: ${name} converts`, json.length > 0);
+  yes(`gemini schema: ${name} drops $schema`, !json.includes('"$schema"'));
+  yes(`gemini schema: ${name} drops additionalProperties`, !json.includes("additionalProperties"));
+  // Reused subschemas are inlined, so neither should ever appear. If Zod
+  // changes that, this fails here rather than as a 400 from Google.
+  yes(`gemini schema: ${name} has no $ref`, !json.includes('"$ref"'));
+  yes(`gemini schema: ${name} has no $defs`, !json.includes('"$defs"'));
+  yes(`gemini schema: ${name} declares an object`, json.includes('"type":"object"'));
+}
+
+// The converted schema must still describe the shape the app validates, or
+// we would be constraining the model to something we then reject.
+{
+  const analysisJson = toGeminiSchema(setupAnalysisSchema as never) as {
+    properties?: Record<string, unknown>;
+    required?: string[];
+  };
+  yes("gemini schema: analysis keeps confidence", Boolean(analysisJson.properties?.confidence));
+  yes("gemini schema: analysis keeps required list", (analysisJson.required ?? []).length > 0);
+}
+
+// --- Gemini: error translation ---------------------------------------------
+//
+// Every branch maps to a code the UI already knows how to phrase, and no
+// branch leaks the provider's own message to the caller.
+const apiError = (status: number) =>
+  new ApiError({ message: "upstream detail that must not reach the user", status });
+
+check("gemini 401 -> unauthorized", translate(apiError(401)).code, "unauthorized");
+check("gemini 403 -> unauthorized", translate(apiError(403)).code, "unauthorized");
+check("gemini 429 -> rate_limited", translate(apiError(429)).code, "rate_limited");
+check("gemini 400 -> provider_error", translate(apiError(400)).code, "provider_error");
+check("gemini 500 -> provider_error", translate(apiError(500)).code, "provider_error");
+yes(
+  "gemini error message does not leak provider detail",
+  !translate(apiError(400)).message.includes("upstream detail"),
+);
+
+{
+  const abort = new Error("aborted");
+  abort.name = "AbortError";
+  check("gemini abort -> timeout", translate(abort).code, "timeout");
+}
+check("gemini unknown -> provider_error", translate(new Error("boom")).code, "provider_error");
+
+// Retry only what can succeed on a second attempt. Retrying a 400 or a 401
+// spends the user's time to get the identical failure.
+yes("gemini retries 429", isTransient(apiError(429)));
+yes("gemini retries 503", isTransient(apiError(503)));
+yes("gemini does not retry 400", !isTransient(apiError(400)));
+yes("gemini does not retry 401", !isTransient(apiError(401)));
+yes("gemini does not retry a plain error", !isTransient(new Error("boom")));
 
 console.log(fails === 0 ? "\nALL CHECKS PASSED" : `\n${fails} CHECK(S) FAILED`);

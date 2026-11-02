@@ -334,6 +334,16 @@ export class MockAIProvider implements AIProvider {
       );
     }
 
-    return { data: validated.data, model: "mock-provider", mock: true };
+    return {
+      data: validated.data,
+      model: "mock-provider",
+      mock: true,
+      // Deliberately omitted. The mock has no token count to report, and
+      // inventing one would put fabricated numbers in the usage ledger —
+      // which is the one table whose whole job is to be true. `undefined`
+      // here also exercises the "provider reported nothing" path that the
+      // ledger columns are nullable for.
+      usage: undefined,
+    };
   }
 }

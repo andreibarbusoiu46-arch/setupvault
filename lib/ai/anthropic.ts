@@ -99,6 +99,7 @@ export class AnthropicProvider implements AIProvider {
     const body = (await response.json()) as {
       content?: ContentBlock[];
       model?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
     };
 
     const text = (body.content ?? [])
@@ -122,6 +123,22 @@ export class AnthropicProvider implements AIProvider {
       );
     }
 
-    return { data: validated.data, model: body.model ?? this.model };
+    const input = body.usage?.input_tokens;
+    const output = body.usage?.output_tokens;
+
+    return {
+      data: validated.data,
+      model: body.model ?? this.model,
+      usage: body.usage
+        ? {
+            inputTokens: input,
+            outputTokens: output,
+            // Anthropic reports the two legs but no total, so it is summed
+            // here — and only when both legs are actually present.
+            totalTokens:
+              input !== undefined && output !== undefined ? input + output : undefined,
+          }
+        : undefined,
+    };
   }
 }

@@ -82,6 +82,20 @@ export type AIUsageRow = {
   user_id: string;
   feature: string;
   used_vision: boolean;
+  /**
+   * Provider-reported token counts. Null means the provider did not report
+   * one, which is not the same as zero — see migration 0006.
+   */
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  /** The model string the provider echoed back. */
+  model: string | null;
+  /**
+   * False when the call was attempted but produced no validated result.
+   * Quota counts only true; the burst window counts every row.
+   */
+  succeeded: boolean;
   created_at: string;
 };
 
@@ -129,7 +143,17 @@ export type Database = {
       };
       ai_usage: {
         Row: AIUsageRow;
-        Insert: Insertable<AIUsageRow, "id" | "used_vision" | "created_at">;
+        Insert: Insertable<
+          AIUsageRow,
+          | "id"
+          | "used_vision"
+          | "created_at"
+          | "input_tokens"
+          | "output_tokens"
+          | "total_tokens"
+          | "model"
+          | "succeeded"
+        >;
         Update: Partial<AIUsageRow>;
         Relationships: [];
       };

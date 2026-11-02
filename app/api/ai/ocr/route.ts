@@ -10,7 +10,12 @@ import {
   loadAIContext,
   loadScreenshot,
 } from "@/features/ai/server/context";
-import { checkAIUsage, recordAIUsage } from "@/services/ai-usage.service";
+import {
+  checkAIBurst,
+  checkAIUsage,
+  recordAIFailure,
+  recordAIUsage,
+} from "@/services/ai-usage.service";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
@@ -51,6 +56,17 @@ export async function POST(request: Request) {
     );
   }
 
+  // Short-window ceiling, checked before the monthly quota: being told
+  // to wait a moment is a more useful answer than being told the
+  // month is fine while twenty concurrent requests bill in parallel.
+  const burst = await checkAIBurst(supabase, userId);
+  if (!burst.allowed) {
+    return NextResponse.json(
+      { error: burst.reason, code: "rate_limited" },
+      { status: 429, headers: { "retry-after": String(burst.retryAfter ?? 60) } },
+    );
+  }
+
   const usage = await checkAIUsage(supabase, userId, tier, true);
   if (!usage.allowed) {
     return NextResponse.json(
@@ -61,7 +77,7 @@ export async function POST(request: Request) {
 
   try {
     const provider = getAIProvider();
-    const { data, mock } = await provider.complete({
+    const { data, model, mock, usage: tokens } = await provider.complete({
       intent: "ocr_levels",
       systemPrompt: OCR_PROMPT,
       userContent: wrapUserContent(
@@ -72,12 +88,16 @@ export async function POST(request: Request) {
       maxTokens: 500,
     });
 
-    await recordAIUsage(admin, userId, "ai_ocr", true);
+    await recordAIUsage(admin, userId, "ai_ocr", true, tokens, model);
 
     const review = reviewOcrLevels(data, setup.direction);
 
     return NextResponse.json({ levels: data, review, mock: Boolean(mock) });
   } catch (error) {
+    // The call reached the provider and cost money, so it goes on the
+    // ledger even though it failed — flagged, so it throttles the burst
+    // window without burning the user's monthly allowance.
+    await recordAIFailure(admin, userId, "ai_ocr", true);
     return aiErrorResponse(error);
   }
 }

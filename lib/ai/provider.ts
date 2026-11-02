@@ -49,11 +49,26 @@ export interface CompletionRequest<T> {
   maxTokens?: number;
 }
 
+/**
+ * What the call actually cost, as the provider reported it.
+ *
+ * Every field is optional because not every provider returns every number,
+ * and a missing count must stay missing rather than becoming a zero — a zero
+ * is a measurement, and recording one we did not take would quietly
+ * understate the bill.
+ */
+export interface TokenUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}
+
 export interface CompletionResult<T> {
   data: T;
   model: string;
   /** True when the response came from the mock provider, never from a model. */
   mock?: boolean;
+  usage?: TokenUsage;
 }
 
 /**

@@ -9,7 +9,12 @@ import {
   semanticQueryToHref,
 } from "@/features/ai/utils/to-filters";
 import { aiErrorResponse, getAdmin } from "@/features/ai/server/context";
-import { checkAIUsage, recordAIUsage } from "@/services/ai-usage.service";
+import {
+  checkAIBurst,
+  checkAIUsage,
+  recordAIFailure,
+  recordAIUsage,
+} from "@/services/ai-usage.service";
 import { getProfile } from "@/services/profile.service";
 import { createClient } from "@/lib/supabase/server";
 
@@ -59,6 +64,17 @@ export async function POST(request: Request) {
     );
   }
 
+  // Short-window ceiling, checked before the monthly quota: being told
+  // to wait a moment is a more useful answer than being told the
+  // month is fine while twenty concurrent requests bill in parallel.
+  const burst = await checkAIBurst(supabase, user.id);
+  if (!burst.allowed) {
+    return NextResponse.json(
+      { error: burst.reason, code: "rate_limited" },
+      { status: 429, headers: { "retry-after": String(burst.retryAfter ?? 60) } },
+    );
+  }
+
   const usage = await checkAIUsage(supabase, user.id, profile.subscription_tier, false);
   if (!usage.allowed) {
     return NextResponse.json({ error: usage.reason, code: "usage_limit" }, { status: 429 });
@@ -66,7 +82,7 @@ export async function POST(request: Request) {
 
   try {
     const provider = getAIProvider();
-    const { data, mock } = await provider.complete({
+    const { data, model, mock, usage: tokens } = await provider.complete({
       intent: "semantic_search",
       systemPrompt: SEMANTIC_SEARCH_PROMPT,
       userContent: wrapUserContent(
@@ -76,7 +92,7 @@ export async function POST(request: Request) {
       maxTokens: 600,
     });
 
-    await recordAIUsage(getAdmin(), user.id, "semantic_search", false);
+    await recordAIUsage(getAdmin(), user.id, "semantic_search", false, tokens, model);
 
     return NextResponse.json({
       filters: semanticQueryToFilters(data),
@@ -85,6 +101,10 @@ export async function POST(request: Request) {
       mock: Boolean(mock),
     });
   } catch (error) {
+    // The call reached the provider and cost money, so it goes on the
+    // ledger even though it failed — flagged, so it throttles the burst
+    // window without burning the user's monthly allowance.
+    await recordAIFailure(getAdmin(), user.id, "semantic_search", false);
     return aiErrorResponse(error);
   }
 }
