@@ -12,8 +12,8 @@ import { aiErrorResponse, getAdmin } from "@/features/ai/server/context";
 import {
   checkAIBurst,
   checkAIUsage,
-  recordAIFailure,
-  recordAIUsage,
+  confirmAIUsage,
+  reserveAIUsage,
 } from "@/services/ai-usage.service";
 import { getProfile } from "@/services/profile.service";
 import { createClient } from "@/lib/supabase/server";
@@ -81,6 +81,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Claimed before the call, so a burst of concurrent requests sees
+    // each other rather than all reading an empty window.
+    const usageId = await reserveAIUsage(getAdmin(), user.id, "semantic_search", false);
+
     const provider = getAIProvider();
     const { data, model, mock, usage: tokens } = await provider.complete({
       intent: "semantic_search",
@@ -90,9 +94,12 @@ export async function POST(request: Request) {
       ),
       schema: semanticQuerySchema,
       maxTokens: 600,
+      // Under this route's own maxDuration of 30s, leaving room for
+      // the database writes that follow.
+      deadlineMs: 18_000,
     });
 
-    await recordAIUsage(getAdmin(), user.id, "semantic_search", false, tokens, model);
+    await confirmAIUsage(getAdmin(), usageId, tokens, model);
 
     return NextResponse.json({
       filters: semanticQueryToFilters(data),
@@ -101,10 +108,8 @@ export async function POST(request: Request) {
       mock: Boolean(mock),
     });
   } catch (error) {
-    // The call reached the provider and cost money, so it goes on the
-    // ledger even though it failed — flagged, so it throttles the burst
-    // window without burning the user's monthly allowance.
-    await recordAIFailure(getAdmin(), user.id, "semantic_search", false);
+    // No write here: the reservation above is already the failure
+    // record, and deleting it would restore the bypass it closes.
     return aiErrorResponse(error);
   }
 }

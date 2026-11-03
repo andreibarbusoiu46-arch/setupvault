@@ -13,8 +13,8 @@ import {
 import {
   checkAIBurst,
   checkAIUsage,
-  recordAIFailure,
-  recordAIUsage,
+  confirmAIUsage,
+  reserveAIUsage,
 } from "@/services/ai-usage.service";
 import { createClient } from "@/lib/supabase/server";
 
@@ -61,6 +61,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Claimed before the call, so a burst of concurrent requests sees
+    // each other rather than all reading an empty window.
+    const usageId = await reserveAIUsage(admin, userId, "ai_auto_tagging", Boolean(image));
+
     const provider = getAIProvider();
     const { data, model, mock, usage: tokens } = await provider.complete({
       intent: "auto_tagging",
@@ -75,9 +79,12 @@ export async function POST(request: Request) {
       image: image ?? undefined,
       schema: suggestedTagsSchema,
       maxTokens: 800,
+      // Under this route's own maxDuration of 60s, leaving room for
+      // the database writes that follow.
+      deadlineMs: 45_000,
     });
 
-    await recordAIUsage(admin, userId, "ai_auto_tagging", Boolean(image), tokens, model);
+    await confirmAIUsage(admin, usageId, tokens, model);
 
     // Anything the setup already carries is not a suggestion.
     const existing = new Set(setup.tags.map((tag) => tag.toLowerCase()));
@@ -91,10 +98,8 @@ export async function POST(request: Request) {
       mock: Boolean(mock),
     });
   } catch (error) {
-    // The call reached the provider and cost money, so it goes on the
-    // ledger even though it failed — flagged, so it throttles the burst
-    // window without burning the user's monthly allowance.
-    await recordAIFailure(admin, userId, "ai_auto_tagging", Boolean(image));
+    // No write here: the reservation above is already the failure
+    // record, and deleting it would restore the bypass it closes.
     return aiErrorResponse(error);
   }
 }

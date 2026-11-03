@@ -119,43 +119,65 @@ export async function checkAIBurst(
   };
 }
 
-export async function recordAIUsage(
+/**
+ * Claim a slot before the provider is called, and confirm it after.
+ *
+ * Writing the ledger row only after a successful call left a race: the burst
+ * check reads the table, the row is written much later, so N requests fired
+ * together all read the same count and all pass. The limit held against a
+ * steady stream and not against the burst it is named for.
+ *
+ * So the row goes in first, as `succeeded: false`. From that moment it is
+ * visible to every other request's burst check. Confirming it on success
+ * flips the flag and attaches the token counts; leaving it alone on failure
+ * is already the correct record, since a failed call should throttle without
+ * consuming the monthly allowance.
+ *
+ * The reservation is never rolled back on failure. That is deliberate: the
+ * call reached the provider and cost money, and deleting the evidence would
+ * restore exactly the bypass this replaces.
+ */
+export async function reserveAIUsage(
   admin: Client,
   userId: string,
   feature: AIFeature,
   usedVision: boolean,
-  usage?: TokenUsage,
-  model?: string,
-  succeeded = true,
-): Promise<void> {
-  const { error } = await admin.from("ai_usage").insert({
-    user_id: userId,
-    feature,
-    used_vision: usedVision,
-    succeeded,
-    // Left null when the provider did not report a count, rather than
-    // defaulted to zero. See the migration for why that distinction matters.
-    input_tokens: usage?.inputTokens ?? null,
-    output_tokens: usage?.outputTokens ?? null,
-    total_tokens: usage?.totalTokens ?? null,
-    model: model ?? null,
-  });
+): Promise<string | null> {
+  const { data, error } = await admin
+    .from("ai_usage")
+    .insert({ user_id: userId, feature, used_vision: usedVision, succeeded: false })
+    .select("id")
+    .single();
 
-  if (error) console.error("Failed to record AI usage", { userId, feature, error });
+  if (error) {
+    // The ledger failing must not take the user's analysis down with it, but
+    // it does mean this call is unmetered, so it is worth a server log.
+    console.error("Failed to reserve AI usage", { userId, feature, error });
+    return null;
+  }
+  return data.id;
 }
 
-/**
- * A call that reached the provider and did not come back usable.
- *
- * Recorded so the burst window sees it. It is flagged `succeeded: false`, so
- * the monthly quota ignores it: the user is throttled for hammering, but not
- * billed an analysis they never received.
- */
-export async function recordAIFailure(
+export async function confirmAIUsage(
   admin: Client,
-  userId: string,
-  feature: AIFeature,
-  usedVision: boolean,
+  id: string | null,
+  usage?: TokenUsage,
+  model?: string,
 ): Promise<void> {
-  await recordAIUsage(admin, userId, feature, usedVision, undefined, undefined, false);
+  if (!id) return;
+
+  const { error } = await admin
+    .from("ai_usage")
+    .update({
+      succeeded: true,
+      // Left null when the provider did not report a count, rather than
+      // defaulted to zero. See the migration for why that distinction matters.
+      input_tokens: usage?.inputTokens ?? null,
+      output_tokens: usage?.outputTokens ?? null,
+      total_tokens: usage?.totalTokens ?? null,
+      model: model ?? null,
+    })
+    .eq("id", id);
+
+  if (error) console.error("Failed to confirm AI usage", { id, error });
 }

@@ -65,12 +65,19 @@ alter table public.ai_usage
     coalesce(total_tokens, 0)  >= 0
   );
 
--- The burst check counts this user's rows in the last minute. The existing
--- `ai_usage_user_month_idx` is (user_id, created_at) and already serves that,
--- but it is defined over the month boundary; this one is explicitly ordered
--- newest-first for the short window, which is the hot path on every request.
-create index if not exists ai_usage_user_recent_idx
-  on public.ai_usage (user_id, created_at desc);
+-- No new index.
+--
+-- This migration originally created `ai_usage_user_recent_idx` on
+-- (user_id, created_at desc), on the stated grounds that the existing
+-- `ai_usage_user_month_idx` was "defined over the month boundary". That was
+-- wrong — it was already exactly (user_id, created_at DESC), so the two were
+-- byte-identical and Postgres happily kept both: two b-trees to maintain on
+-- every insert, for one query plan. The existing index already serves both
+-- the monthly quota and the burst window.
+--
+-- Dropped here rather than quietly left behind, because an index nobody
+-- reads is still paid for on every write.
+drop index if exists public.ai_usage_user_recent_idx;
 
 -- RLS is already enabled on this table and the existing select-own policy
 -- covers the new columns. Writes remain service-role only: there is
@@ -79,7 +86,6 @@ create index if not exists ai_usage_user_recent_idx
 -- ---------------------------------------------------------------------------
 -- down
 --
---   drop index if exists public.ai_usage_user_recent_idx;
 --   alter table public.ai_usage drop constraint if exists ai_usage_tokens_non_negative;
 --   alter table public.ai_usage
 --     drop column if exists input_tokens,

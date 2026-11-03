@@ -47,6 +47,15 @@ export interface CompletionRequest<T> {
   image?: ImagePayload;
   schema: ZodType<T>;
   maxTokens?: number;
+  /**
+   * How long the caller has, in total, for every attempt combined.
+   *
+   * A route runs under a platform deadline (`maxDuration`), and a provider
+   * that retries past it gets killed mid-flight — the caller then sees a
+   * generic gateway timeout instead of the typed error the provider was
+   * careful to build. Each route passes a budget below its own limit.
+   */
+  deadlineMs?: number;
 }
 
 /**

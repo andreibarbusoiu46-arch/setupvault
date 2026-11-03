@@ -142,8 +142,15 @@ const okReply = (text: string, usage = { promptTokenCount: 1870, candidatesToken
   yes("sends a response schema", Boolean(cfg?.responseJsonSchema));
   const schemaJson = JSON.stringify(cfg?.responseJsonSchema ?? {});
   yes("schema has no $schema", !schemaJson.includes('"$schema"'));
-  yes("schema has no additionalProperties", !schemaJson.includes("additionalProperties"));
-  check("passes the token budget", cfg?.maxOutputTokens, 2400);
+  yes("schema keeps additionalProperties", schemaJson.includes("additionalProperties"));
+  // Must exceed the caller's 2400: on a 3.x model maxOutputTokens caps
+  // thinking and output together, so a budget sized for the JSON alone gets
+  // spent on reasoning and the call returns 200 with an empty candidate.
+  yes(
+    `leaves room for thinking above the answer budget (${cfg?.maxOutputTokens})`,
+    typeof cfg?.maxOutputTokens === "number" && cfg.maxOutputTokens > 2400,
+  );
+  yes("holds thinking low for a schema-constrained task", Boolean(cfg?.thinkingConfig));
 
   check("confidence survives validation", result.data.confidence, ANALYSIS.confidence);
   check("reports input tokens", result.usage?.inputTokens, 1870);
@@ -302,6 +309,99 @@ const okReply = (text: string, usage = { promptTokenCount: 1870, candidatesToken
 
   check("MAX_TOKENS is not retried", seen.length, 1);
   check("MAX_TOKENS maps to invalid_output", (caught as AIError)?.code, "invalid_output");
+}
+
+/* ── 7. The retry budget must fit inside the caller's deadline ──────────── */
+//
+// This existed as a bug: three attempts of 60s plus backoff, a 182s worst
+// case, inside routes whose own maxDuration is 60s and 30s. The platform
+// would kill the function mid-retry and the caller would see a generic
+// gateway timeout instead of the typed error built here. The budget is now
+// shared across attempts, so retries stop when there is not enough left.
+{
+  let calls = 0;
+  const { restore } = stub(() => {
+    calls++;
+    return { status: 503, body: { error: { message: "unavailable", status: 503 } } };
+  });
+
+  const provider = new GeminiProvider(KEY, MODEL);
+  const startedAt = Date.now();
+  let caught: unknown;
+  try {
+    await provider.complete({
+      intent: "setup_analysis",
+      systemPrompt: "S",
+      userContent: "U",
+      schema: setupAnalysisSchema,
+      deadlineMs: 3_000,
+    });
+  } catch (error) {
+    caught = error;
+  }
+  const elapsed = Date.now() - startedAt;
+  restore();
+
+  yes("a failing call throws rather than hanging", caught instanceof AIError);
+  yes(`stops inside the deadline (took ${elapsed}ms of 3000)`, elapsed < 3_000);
+  // 3s is below the 4s a retry needs to be worth starting, so it gives up
+  // after the first attempt rather than burning the caller's remaining time.
+  check("a budget too small to retry makes exactly one attempt", calls, 1);
+}
+
+// A budget that affords exactly one retry must take exactly one — proving
+// the arithmetic runs, not merely that it bails out early.
+{
+  let calls = 0;
+  const { restore } = stub(() => {
+    calls++;
+    return { status: 503, body: { error: { message: "unavailable", status: 503 } } };
+  });
+
+  const provider = new GeminiProvider(KEY, MODEL);
+  const startedAt = Date.now();
+  try {
+    await provider.complete({
+      intent: "setup_analysis",
+      systemPrompt: "S",
+      userContent: "U",
+      schema: setupAnalysisSchema,
+      // 6s: the 0.6s backoff leaves 5.4s, which clears the 4s floor, so the
+      // first retry runs. The next would need 1.6s more and leave 3.8s,
+      // which does not, so it stops there.
+      deadlineMs: 6_000,
+    });
+  } catch {
+    /* expected */
+  }
+  const elapsed = Date.now() - startedAt;
+  restore();
+
+  check("a budget affording one retry makes exactly two attempts", calls, 2);
+  yes(`and still finishes inside it (${elapsed}ms of 6000)`, elapsed < 6_000);
+}
+
+// And a generous budget still allows the full retry sequence.
+{
+  let calls = 0;
+  const { restore } = stub(() => {
+    calls++;
+    if (calls < 3) return { status: 503, body: { error: { message: "x", status: 503 } } };
+    return okReply(JSON.stringify(ANALYSIS))();
+  });
+
+  const provider = new GeminiProvider(KEY, MODEL);
+  const result = await provider.complete({
+    intent: "setup_analysis",
+    systemPrompt: "S",
+    userContent: "U",
+    schema: setupAnalysisSchema,
+    deadlineMs: 30_000,
+  });
+  restore();
+
+  check("a generous budget allows all three attempts", calls, 3);
+  check("and returns the third attempt's data", result.data.confidence, ANALYSIS.confidence);
 }
 
 console.log(fails === 0 ? "\nALL WIRE CHECKS PASSED" : `\n${fails} WIRE CHECK(S) FAILED`);

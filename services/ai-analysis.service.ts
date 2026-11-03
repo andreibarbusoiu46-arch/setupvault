@@ -128,8 +128,15 @@ export async function completeAnalysis(
   {
     result,
     model,
+    provider,
     confidence,
-  }: { result: unknown; model: string; confidence: number | null },
+  }: {
+    result: unknown;
+    model: string;
+    /** Which implementation answered, recorded alongside the model string. */
+    provider: string;
+    confidence: number | null;
+  },
 ): Promise<AIAnalysisRow> {
   const { data, error } = await admin
     .from("setup_ai_analyses")
@@ -137,6 +144,7 @@ export async function completeAnalysis(
       status: "completed",
       result_json: result,
       model,
+      provider,
       confidence,
     })
     .eq("id", id)
@@ -151,13 +159,40 @@ export async function failAnalysis(
   admin: Client,
   id: string,
   errorCode: string,
+  detail?: string | null,
 ): Promise<void> {
   const { error } = await admin
     .from("setup_ai_analyses")
-    .update({ status: "failed", error_code: errorCode })
+    .update({
+      status: "failed",
+      error_code: errorCode,
+      error_detail: redactDetail(detail),
+    })
     .eq("id", id);
 
   if (error) console.error("Could not mark analysis failed", { id, error });
+}
+
+/**
+ * Trims a provider reason down to something safe to store.
+ *
+ * Anything key-shaped is removed before truncation rather than after, so a
+ * secret cannot survive by sitting past the cut. The length cap matches the
+ * column's own constraint, so this fails here with a clear value rather than
+ * as a constraint violation during the failure path — which would lose the
+ * reason entirely at exactly the moment it is wanted.
+ */
+function redactDetail(detail?: string | null): string | null {
+  if (!detail) return null;
+
+  const cleaned = String(detail)
+    .replace(/AIza[A-Za-z0-9_-]{10,}/g, "[redacted-key]")
+    .replace(/sk-[A-Za-z0-9]{10,}/g, "[redacted-key]")
+    .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.?[A-Za-z0-9_-]*/g, "[redacted-token]")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned ? cleaned.slice(0, 400) : null;
 }
 
 /** Clears a stale claim so a later attempt is not blocked forever. */

@@ -190,7 +190,9 @@ for (const [name, schema] of GEMINI_SCHEMAS) {
 
   yes(`gemini schema: ${name} converts`, json.length > 0);
   yes(`gemini schema: ${name} drops $schema`, !json.includes('"$schema"'));
-  yes(`gemini schema: ${name} drops additionalProperties`, !json.includes("additionalProperties"));
+  // Kept, not stripped: Google's structured-output docs list
+  // additionalProperties among the supported object keywords, and
+  // constraining generation beats rejecting a stray key afterwards.
   // Reused subschemas are inlined, so neither should ever appear. If Zod
   // changes that, this fails here rather than as a 400 from Google.
   yes(`gemini schema: ${name} has no $ref`, !json.includes('"$ref"'));

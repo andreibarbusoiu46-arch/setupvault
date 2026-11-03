@@ -3,6 +3,7 @@ import "server-only";
 import {
   ApiError,
   GoogleGenAI,
+  ThinkingLevel,
   type GenerateContentResponse,
   type Part,
 } from "@google/genai";
@@ -49,18 +50,58 @@ import {
  */
 
 const DEFAULT_MODEL = "gemini-3.8-flash";
-const TIMEOUT_MS = 60_000;
+
+/**
+ * One deadline for the whole call, not one per attempt.
+ *
+ * This was three attempts of 60s plus backoff — a 182s worst case inside a
+ * route whose own `maxDuration` is 60s, and 30s on semantic search. The
+ * platform would kill the function mid-retry and the caller would get a
+ * generic gateway timeout instead of the clean, typed error this provider
+ * takes care to produce. A retry budget larger than the deadline it runs
+ * under is not a retry budget.
+ *
+ * So: the caller states how long it has, every attempt draws from that one
+ * budget, and a retry is only started if there is enough left for it to
+ * plausibly finish. `DEADLINE_MS` is the default and sits under the tightest
+ * route, with room left for the database writes that follow.
+ */
+const DEADLINE_MS = 25_000;
+/** No single attempt may eat the entire budget and leave nothing for a retry. */
+const ATTEMPT_CAP_MS = 20_000;
+/** Below this much remaining, a retry cannot plausibly finish. Give up cleanly. */
+const MIN_RETRY_BUDGET_MS = 4_000;
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [600, 1_600];
 
 /**
- * Gemini accepts a subset of JSON Schema. Two of the keywords Zod emits are
- * outside it, so they are removed rather than sent and rejected:
+ * Room for the model to think, on top of the JSON we actually want.
  *
- * - `$schema`, a dialect declaration the API has no use for.
- * - `additionalProperties`, which the Gemini schema dialect does not accept.
- *   Dropping it costs nothing here: the Zod parse on the way back is what
- *   actually rejects an unexpected key, and it still runs.
+ * Gemini 3.x reasons before answering, and `maxOutputTokens` caps thinking
+ * and output *combined* — it is not a budget for the reply alone. A limit
+ * sized for the JSON therefore gets spent on reasoning, and the call returns
+ * HTTP 200 with an empty candidate and `finishReason: MAX_TOKENS`. The
+ * caller asked for 2,400 tokens of analysis and got nothing, with no error
+ * from the API to explain it.
+ *
+ * So the caller's `maxTokens` stays what it means — the size of the answer —
+ * and this is added for the reasoning. `thinkingLevel` is held low because
+ * these are extraction and classification tasks against a schema, not open
+ * problems: the schema does most of the structuring that thinking would
+ * otherwise have to.
+ */
+const THINKING_HEADROOM_TOKENS = 6_000;
+
+/**
+ * Gemini accepts a subset of JSON Schema, so `$schema` — a dialect
+ * declaration the API has no use for — is removed.
+ *
+ * `additionalProperties` is kept. An earlier version of this stripped it too,
+ * on the stated grounds that "the Gemini schema dialect does not accept it".
+ * That was wrong: Google's structured-output documentation lists it among the
+ * supported object keywords. Keeping it is also the better of the two, since
+ * it constrains generation rather than leaving the Zod parse to reject a
+ * stray key after the tokens have been paid for.
  *
  * `$ref` and `$defs` are not handled because the conversion is asked to
  * inline reused subschemas, and a test asserts that none of the five schemas
@@ -78,7 +119,7 @@ export function toGeminiSchema(schema: z.ZodType<unknown>): unknown {
 
     const out: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(node)) {
-      if (key === "$schema" || key === "additionalProperties") continue;
+      if (key === "$schema") continue;
       out[key] = strip(value);
     }
     return out;
@@ -150,7 +191,10 @@ export class GeminiProvider implements AIProvider {
     image,
     schema,
     maxTokens = 2000,
+    deadlineMs = DEADLINE_MS,
   }: CompletionRequest<T>): Promise<CompletionResult<T>> {
+    const startedAt = Date.now();
+    const remaining = () => deadlineMs - (Date.now() - startedAt);
     const parts: Part[] = [];
 
     // The image first, then the text that refers to it — the order Gemini's
@@ -167,10 +211,19 @@ export class GeminiProvider implements AIProvider {
     let lastError: unknown;
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      // A fresh deadline per attempt, and an abort that actually reaches the
-      // SDK rather than leaving a request running after we stopped waiting.
+      // Whatever is left of the shared budget, capped so that one slow
+      // attempt cannot consume the lot. The abort reaches the SDK, so a
+      // request we stopped waiting for is actually cancelled rather than
+      // left running against the provider.
+      const left = remaining();
+      if (left <= 0) {
+        throw new AIError("timeout", "The analysis took too long.");
+      }
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const timer = setTimeout(
+        () => controller.abort(),
+        Math.min(left, ATTEMPT_CAP_MS),
+      );
 
       let response: GenerateContentResponse;
       try {
@@ -181,7 +234,10 @@ export class GeminiProvider implements AIProvider {
             systemInstruction: systemPrompt,
             responseMimeType: "application/json",
             responseJsonSchema,
-            maxOutputTokens: maxTokens,
+            // The caller's budget is for the answer; the reasoning needs its
+            // own room inside the same cap. See THINKING_HEADROOM_TOKENS.
+            maxOutputTokens: maxTokens + THINKING_HEADROOM_TOKENS,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             // Analysis of a fixed chart should not wander between runs; the
             // caching layer upstream assumes identical inputs are worth
             // reusing, and a high temperature would make that a lie.
@@ -192,8 +248,13 @@ export class GeminiProvider implements AIProvider {
       } catch (error) {
         clearTimeout(timer);
         lastError = error;
-        if (isTransient(error) && attempt < MAX_ATTEMPTS - 1) {
-          await sleep(BACKOFF_MS[attempt] ?? 1_600);
+        const pause = BACKOFF_MS[attempt] ?? 1_600;
+        if (
+          isTransient(error) &&
+          attempt < MAX_ATTEMPTS - 1 &&
+          remaining() - pause > MIN_RETRY_BUDGET_MS
+        ) {
+          await sleep(pause);
           continue;
         }
         throw translate(error);
@@ -224,8 +285,12 @@ export class GeminiProvider implements AIProvider {
       const text = response.text?.trim() ?? "";
       if (!text) {
         lastError = new AIError("invalid_output", "The model returned nothing.", finish);
-        if (attempt < MAX_ATTEMPTS - 1) {
-          await sleep(BACKOFF_MS[attempt] ?? 1_600);
+        const pause = BACKOFF_MS[attempt] ?? 1_600;
+        if (
+          attempt < MAX_ATTEMPTS - 1 &&
+          remaining() - pause > MIN_RETRY_BUDGET_MS
+        ) {
+          await sleep(pause);
           continue;
         }
         throw lastError;

@@ -113,6 +113,45 @@ export function getAdmin() {
 }
 
 /** Maps a provider failure onto a message and status the user can act on. */
+/**
+ * A short, human-readable reason for a failure, for the analysis record.
+ *
+ * Distinct from `aiErrorResponse`, which is what the user sees: that one is
+ * deliberately vague because a provider's own message can quote the request
+ * back. This one is stored on the row and read only by its owner, so it can
+ * carry the status and the provider's summary — the thing that tells a
+ * rejected schema apart from an outage.
+ */
+export function describeFailure(error: unknown): string | null {
+  if (!error) return null;
+
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : null;
+
+  const reason =
+    typeof error === "object" && error !== null && "reason" in error
+      ? (error as { reason: unknown }).reason
+      : null;
+
+  const status =
+    typeof reason === "object" && reason !== null && "status" in reason
+      ? String((reason as { status: unknown }).status)
+      : null;
+
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : error instanceof Error
+        ? error.message
+        : null;
+
+  return [code, status ? `HTTP ${status}` : null, message]
+    .filter(Boolean)
+    .join(" · ") || null;
+}
+
 export function aiErrorResponse(error: unknown): NextResponse {
   if (error instanceof AIError) {
     const map: Record<string, { message: string; status: number }> = {

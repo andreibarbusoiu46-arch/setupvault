@@ -7,6 +7,7 @@ import { setupAnalysisSchema } from "@/features/ai/schemas";
 import { buildInputHash } from "@/features/ai/utils/input-hash";
 import {
   aiErrorResponse,
+  describeFailure,
   describeSetup,
   getAdmin,
   loadAIContext,
@@ -24,8 +25,8 @@ import {
 import {
   checkAIBurst,
   checkAIUsage,
-  recordAIFailure,
-  recordAIUsage,
+  confirmAIUsage,
+  reserveAIUsage,
 } from "@/services/ai-usage.service";
 import { createClient } from "@/lib/supabase/server";
 
@@ -126,6 +127,10 @@ export async function POST(request: Request) {
   try {
     const image = wantsVision ? await loadScreenshot(setup.screenshot_path) : null;
 
+    // Claimed before the call, so a burst of concurrent requests sees
+    // each other rather than all reading an empty window.
+    const usageId = await reserveAIUsage(admin, userId, "ai_analysis", wantsVision);
+
     const provider = getAIProvider();
     const { data, model, mock, usage: tokens } = await provider.complete({
       intent: "setup_analysis",
@@ -138,15 +143,22 @@ export async function POST(request: Request) {
       image: image ?? undefined,
       schema: setupAnalysisSchema,
       maxTokens: 2400,
+      // Under this route's own maxDuration of 60s, leaving room for
+      // the database writes that follow.
+      deadlineMs: 45_000,
     });
 
     const analysis = await completeAnalysis(admin, claim.id, {
       result: data,
       model,
+      // Which implementation answered, not just which model string it
+      // echoed back. Reading the provider out of the model name works
+      // today only because gemini- and claude- happen not to collide.
+      provider: provider.name,
       confidence: data.confidence,
     });
 
-    await recordAIUsage(admin, userId, "ai_analysis", Boolean(image), tokens, model);
+    await confirmAIUsage(admin, usageId, tokens, model);
 
     return NextResponse.json({ analysis, cached: false, mock: Boolean(mock) });
   } catch (error) {
@@ -155,11 +167,12 @@ export async function POST(request: Request) {
         ? String((error as { code: unknown }).code)
         : "provider_error";
 
-    await failAnalysis(admin, claim.id, code);
-    // The call reached the provider and cost money, so it goes on the
-    // ledger even though it failed — flagged, so it throttles the burst
-    // window without burning the user's monthly allowance.
-    await recordAIFailure(admin, userId, "ai_analysis", wantsVision);
+    // The reason, not just the code. `provider_error` alone covered a
+    // rejected request, an outage and a safety block identically, which made
+    // a live failure impossible to diagnose without the platform logs.
+    await failAnalysis(admin, claim.id, code, describeFailure(error));
+    // No write here: the reservation above is already the failure
+    // record, and deleting it would restore the bypass it closes.
     return aiErrorResponse(error);
   }
 }

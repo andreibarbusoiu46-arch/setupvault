@@ -67,12 +67,16 @@ export type AIAnalysisRow = {
   analysis_type: AIAnalysisType;
   status: AIAnalysisStatus;
   model: string | null;
+  /** Which provider produced this: gemini, anthropic or mock. */
+  provider: string | null;
   analysis_version: number;
   input_hash: string;
   used_screenshot: boolean;
   result_json: unknown;
   confidence: number | null;
   error_code: string | null;
+  /** Short, truncated provider reason. Never a secret. */
+  error_detail: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -130,11 +134,13 @@ export type Database = {
           | "analysis_type"
           | "status"
           | "model"
+          | "provider"
           | "analysis_version"
           | "used_screenshot"
           | "result_json"
           | "confidence"
           | "error_code"
+          | "error_detail"
           | "created_at"
           | "updated_at"
         >;
