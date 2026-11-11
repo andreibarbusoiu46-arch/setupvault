@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test:ai": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/ai/run.ts",
     "test:ai:wire": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/ai/gemini-wire.ts",
-    "test": "npm run test:ai && npm run test:ai:wire"
+    "test": "npm run test:ai && npm run test:ai:wire && npm run test:import && npm run test:mapper",
+    "test:import": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/conventions.ts",
+    "test:mapper": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/mapper.ts"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",
