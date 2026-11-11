@@ -10,10 +10,11 @@
     "typecheck": "tsc --noEmit",
     "test:ai": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/ai/run.ts",
     "test:ai:wire": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/ai/gemini-wire.ts",
-    "test": "npm run test:ai && npm run test:ai:wire && npm run test:import && npm run test:mapper && npm run test:normalizer",
+    "test": "npm run test:ai && npm run test:ai:wire && npm run test:import && npm run test:mapper && npm run test:normalizer && npm run test:csv",
     "test:import": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/conventions.ts",
     "test:mapper": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/mapper.ts",
-    "test:normalizer": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/normalizer.ts"
+    "test:normalizer": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/normalizer.ts",
+    "test:csv": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/csv-parser.ts"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",

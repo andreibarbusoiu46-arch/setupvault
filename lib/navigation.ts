@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Upload,
   LayoutDashboard,
   Library,
   Settings,
@@ -23,6 +24,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: ROUTES.setups, label: "My Setups", icon: Library, available: true },
   { href: ROUTES.favorites, label: "Favorites", icon: Star, available: true },
   { href: ROUTES.analytics, label: "Analytics", icon: BarChart3, available: true },
+  { href: ROUTES.import, label: "Import", icon: Upload, available: true },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [

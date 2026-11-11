@@ -6,6 +6,7 @@ export const ROUTES = {
   resetPassword: "/reset-password",
   dashboard: "/dashboard",
   setups: "/setups",
+  import: "/import",
   favorites: "/favorites",
   analytics: "/analytics",
   profile: "/profile",
