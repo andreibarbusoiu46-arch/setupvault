@@ -13,7 +13,10 @@ type Client = SupabaseClient<Database>;
  * transfer them.
  */
 const ANALYTICS_COLUMNS =
-  "id,title,ticker,traded_on,created_at,result,direction,market,strategy,entry,stop_loss,take_profit,risk_reward,tags,screenshot_path,notes_length,is_favorite";
+  // `pnl` is here because it was in the database and in nothing that read it:
+  // imported trades carried a realised figure that no query selected, so a
+  // currency P&L could not be shown anywhere however much the data was there.
+  "id,title,ticker,traded_on,created_at,result,direction,market,strategy,entry,stop_loss,take_profit,risk_reward,pnl,tags,screenshot_path,notes_length,is_favorite";
 
 /** PostgREST caps a response at 1000 rows, so large libraries are paged through. */
 const CHUNK = 1000;

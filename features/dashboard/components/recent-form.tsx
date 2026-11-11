@@ -15,7 +15,22 @@ import {
  * an overview, and the window is stated in the heading so the numbers cannot be
  * mistaken for lifetime figures. The full picture lives on Analytics.
  */
-export function RecentForm({ rows }: { rows: AnalyticsRow[] }) {
+export function RecentForm({
+  rows,
+  libraryTotal,
+}: {
+  rows: AnalyticsRow[];
+  /**
+   * Everything the user owns, ignoring the window.
+   *
+   * Without this the panel cannot tell "you have not traded this month" from
+   * "you have three years of history, all of it older than this window" — and
+   * it said the first while meaning the second. After importing a year of
+   * trades that reads as the import having failed, which is exactly the
+   * conclusion it produced.
+   */
+  libraryTotal: number;
+}) {
   const stats = computeStats(rows);
   const strategies = byStrategy(rows);
 
@@ -39,9 +54,24 @@ export function RecentForm({ rows }: { rows: AnalyticsRow[] }) {
       </div>
 
       {stats.total === 0 ? (
-        <p className="py-6 text-sm text-fg-subtle">
-          Nothing logged in the last 30 days.
-        </p>
+        <div className="py-6">
+          <p className="text-sm text-fg-subtle">
+            Nothing logged in the last 30 days.
+          </p>
+          {libraryTotal > 0 ? (
+            <p className="mt-2 text-sm text-fg-muted">
+              Your {libraryTotal === 1 ? "setup is" : `${libraryTotal} setups are`}{" "}
+              dated outside this window —{" "}
+              <Link
+                href={ROUTES.analytics}
+                className="text-fg underline underline-offset-4"
+              >
+                see them on Analytics
+              </Link>
+              .
+            </p>
+          ) : null}
+        </div>
       ) : (
         <>
           <dl className="mt-5 grid grid-cols-3 gap-3">
@@ -62,6 +92,34 @@ export function RecentForm({ rows }: { rows: AnalyticsRow[] }) {
               </dd>
             </div>
           </dl>
+
+          {stats.netPnl !== null ? (
+            <div className="mt-5 border-t border-border pt-4">
+              <p className="eyebrow">Net P&amp;L</p>
+              <p
+                className={
+                  stats.netPnl > 0
+                    ? "stat mt-1.5 text-xl text-positive"
+                    : stats.netPnl < 0
+                      ? "stat mt-1.5 text-xl text-negative"
+                      : "stat mt-1.5 text-xl text-fg"
+                }
+              >
+                {stats.netPnl > 0 ? "+" : ""}
+                {stats.netPnl.toLocaleString("en-GB", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              {/* The count travels with the figure. A currency total over a
+                  set where only some rows carry one is not the user's P&L,
+                  it is the P&L of part of their library. */}
+              <p className="mt-1 text-xs text-fg-subtle">
+                from {stats.pnlRows} of {stats.total}{" "}
+                {stats.total === 1 ? "setup" : "setups"} with a recorded figure
+              </p>
+            </div>
+          ) : null}
 
           {top ? (
             <div className="mt-5 border-t border-border pt-4">

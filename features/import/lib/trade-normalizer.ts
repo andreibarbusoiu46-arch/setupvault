@@ -328,6 +328,17 @@ export function normaliseRow(
     add("closed_at", "error", "Closes before it opens");
   }
 
+  // A row with no date at all imports fine and then cannot be found: every
+  // date range excludes it and the calendar has nowhere to draw it. That is
+  // worth saying before the import, not discovering afterwards.
+  if (!openedAt && !closedAt) {
+    add(
+      "opened_at",
+      "warning",
+      "No date — this trade will not appear in the calendar or in any date range",
+    );
+  }
+
   /* Market, which has to be inferred. */
   const inferred = ticker ? inferMarket(ticker) : null;
   const market = inferred?.confident ? inferred.market : options.fallbackMarket;
@@ -356,11 +367,18 @@ export function normaliseRow(
     return v ? v.slice(0, max) : null;
   };
 
-  // traded_on and traded_at come from opened_at because the Setup Score and
-  // the analytics read those two columns and nothing else. Without this an
-  // imported trade is invisible to both.
-  const tradedOn = openedAt ? openedAt.slice(0, 10) : null;
-  const tradedAt = openedAt ? openedAt.slice(11, 19) : null;
+  // traded_on and traded_at come from the opening moment, falling back to the
+  // closing one, because the Setup Score, the analytics and the calendar read
+  // those two columns and nothing else.
+  //
+  // This is load bearing, and the fallback is not decoration: a measured test
+  // against the real database showed a row with a null traded_on is invisible
+  // in EVERY date range and absent from the calendar entirely. Some exports
+  // carry only a close time, and without the fallback every one of those rows
+  // would import successfully and then be impossible to find.
+  const stamp = openedAt ?? closedAt;
+  const tradedOn = stamp ? stamp.slice(0, 10) : null;
+  const tradedAt = stamp ? stamp.slice(11, 19) : null;
 
   return {
     line,

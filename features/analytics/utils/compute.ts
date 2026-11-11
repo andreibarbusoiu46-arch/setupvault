@@ -15,6 +15,12 @@ export interface AnalyticsRow {
   stop_loss: number | null;
   take_profit: number | null;
   risk_reward: number | null;
+  /**
+   * The broker's realised figure, present only on imported trades. Manually
+   * entered setups record levels rather than money, so this is null for them
+   * and every total built from it is explicitly partial.
+   */
+  pnl: number | null;
   tags: string[];
   screenshot_path: string | null;
   notes_length: number;
@@ -33,6 +39,17 @@ export interface Stats {
   avgRiskReward: number | null;
   avgWinRiskReward: number | null;
   avgLossRiskReward: number | null;
+  /**
+   * Net of the rows that carry a P&L, and how many did.
+   *
+   * Kept together deliberately. A currency total over a set where only some
+   * rows have a figure is not the user's P&L, it is the P&L of part of their
+   * library — so the count travels with the number and the UI states it. A
+   * total shown alone would be read as lifetime profit and be wrong by
+   * however much is missing.
+   */
+  netPnl: number | null;
+  pnlRows: number;
 }
 
 export interface GroupStats extends Stats {
@@ -102,6 +119,9 @@ export function computeStats(rows: AnalyticsRow[]): Stats {
   const winRatios: number[] = [];
   const lossRatios: number[] = [];
 
+  let netPnl = 0;
+  let pnlRows = 0;
+
   for (const row of rows) {
     switch (row.result) {
       case "win":
@@ -115,6 +135,12 @@ export function computeStats(rows: AnalyticsRow[]): Stats {
         break;
       default:
         pending++;
+    }
+
+    const pnl = row.pnl === null ? null : Number(row.pnl);
+    if (pnl !== null && Number.isFinite(pnl)) {
+      netPnl += pnl;
+      pnlRows++;
     }
 
     const ratio =
@@ -141,6 +167,10 @@ export function computeStats(rows: AnalyticsRow[]): Stats {
     avgRiskReward: mean(allRatios),
     avgWinRiskReward: mean(winRatios),
     avgLossRiskReward: mean(lossRatios),
+    // Null rather than zero when nothing carried a figure: zero is a result,
+    // and "no P&L recorded" is not the same as "broke even".
+    netPnl: pnlRows === 0 ? null : Math.round(netPnl * 100) / 100,
+    pnlRows,
   };
 }
 

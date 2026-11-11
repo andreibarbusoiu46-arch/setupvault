@@ -126,6 +126,31 @@ console.log("\n--- only exact matches are pre-selected ---");
   );
 }
 
+console.log("\n--- the mutually-exclusive rule cuts both ways ---");
+{
+  // A certain match must not be punished for having a weak rival. "Close
+  // Time" is an exact name for closed_at and only touches opened_at through
+  // the "time" suffix. Demoting it meant nothing was pre-selected, the file
+  // imported with no date, and every one of those rows was then invisible in
+  // every date range and absent from the calendar.
+  const headers = ["Symbol", "Side", "Entry", "Close Time"];
+  const rows = [["EURUSD", "buy", "1.0842", "2026-04-03 11:15"]];
+  const m = mapColumns(headers, rows);
+  check("an exact close-time match keeps its confidence", m.matches.closed_at.confidence, "exact");
+  check("and is pre-selected", autoSelected(m).closed_at, 3);
+}
+{
+  // The case the rule is actually for: two columns the header cannot tell
+  // apart, where picking one silently would invent a round trip.
+  const headers = ["Symbol", "Side", "Price", "Price"];
+  const rows = [["EURUSD", "buy", "1.0842", "1.0910"]];
+  const m = mapColumns(headers, rows);
+  yes(
+    "genuine ambiguity is still flagged rather than guessed",
+    m.matches.entry.confidence !== "exact" || autoSelected(m).exit_price === null,
+  );
+}
+
 console.log("\n--- required fields gate the import ---");
 {
   const m = mapColumns(["Price", "Qty"], [["1.08", "1"]]);

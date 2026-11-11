@@ -196,6 +196,14 @@ export function mapColumns(headers: string[], rows: string[][]): Mapping {
 
       const winner = ranked[0];
 
+      // Measured before the loop below reassigns anything: afterwards every
+      // loser reads as "strong" or "none" because it has been rewritten, and
+      // the genuine two-columns-both-called-Price case would stop being
+      // flagged.
+      const contested = ranked
+        .slice(1)
+        .some((f) => RANK[matches[f].confidence] >= RANK[matches[winner].confidence]);
+
       for (const field of ranked.slice(1)) {
         const taken = new Set(
           TRADE_FIELD_KEYS.map((f) => (f === field ? null : matches[f].column)).filter(
@@ -224,7 +232,20 @@ export function mapColumns(headers: string[], rows: string[][]): Mapping {
         changed = true;
       }
 
-      if (MUTUALLY_EXCLUSIVE.some((pair) => pair.every((f) => fields.includes(f)))) {
+      // Demote the winner only when the contest was actually close.
+      //
+      // The pair rule exists for genuine ambiguity — two columns both headed
+      // "Price", where entry and exit are indistinguishable. It was firing
+      // whenever a mutually exclusive pair touched one column at all, which
+      // punished a certain match for having a weak rival: "Close Time" is an
+      // exact name for closed_at and only matches opened_at through the
+      // "time" suffix, yet both were dropped to weak, nothing was
+      // pre-selected, and a file carrying only a close time imported with no
+      // date at all. Those rows are then invisible in every date range.
+      if (
+        contested &&
+        MUTUALLY_EXCLUSIVE.some((pair) => pair.every((f) => fields.includes(f)))
+      ) {
         matches[winner] = { ...matches[winner], confidence: "weak" };
       }
     }

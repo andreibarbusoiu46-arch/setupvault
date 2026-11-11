@@ -93,7 +93,7 @@ export default async function DashboardPage() {
           <ActivityFeed setups={recent} />
         </Panel>
 
-        <RecentForm rows={recentWindow.rows} />
+        <RecentForm rows={recentWindow.rows} libraryTotal={stats.total} />
       </div>
     </div>
   );

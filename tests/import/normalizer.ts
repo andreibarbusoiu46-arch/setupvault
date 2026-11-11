@@ -151,6 +151,39 @@ console.log("\n--- wrong geometry imports with a warning ---");
   check("and no R multiple", out.rows[0].trade!.risk_reward, null);
 }
 
+console.log("\n--- the date a trade is filed under ---");
+{
+  // Measured against the real database: a row with a null traded_on is
+  // invisible in every date range and absent from the calendar. Some exports
+  // carry only a close time, so the fallback is what keeps those findable.
+  const headers = ["Symbol", "Side", "Entry", "Close Time"];
+  const rows = [["EURUSD", "buy", "1.0842", "2026-04-03 11:15"]];
+  const mapping = autoSelected(mapColumns(headers, rows)) as FieldMapping;
+  const out = normaliseRows(rows, { mapping, fallbackMarket: "forex" });
+  const t = out.rows[0].trade!;
+
+  check("with no open time, traded_on falls back to the close", t.traded_on, "2026-04-03");
+  check("and traded_at with it", t.traded_at, "11:15:00");
+  check("opened_at stays honestly null", t.opened_at, null);
+}
+{
+  // No date at all: it still imports, but the user is told it will be
+  // unfindable rather than discovering that afterwards.
+  const headers = ["Symbol", "Side", "Entry"];
+  const rows = [["EURUSD", "buy", "1.0842"]];
+  const mapping = autoSelected(mapColumns(headers, rows)) as FieldMapping;
+  const out = normaliseRows(rows, { mapping, fallbackMarket: "forex" });
+
+  yes("a dateless row still imports", out.rows[0].valid);
+  check("but has no traded_on", out.rows[0].trade!.traded_on, null);
+  yes(
+    "and says it will not be findable",
+    out.rows[0].issues.some(
+      (i) => i.severity === "warning" && /calendar|date range/i.test(i.message),
+    ),
+  );
+}
+
 console.log("\n--- fingerprints ---");
 {
   const a = fingerprint("EURUSD", "long", 1.0842, "2026-04-03T07:00:00.000Z");
