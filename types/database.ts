@@ -56,6 +56,25 @@ export type SetupRow = {
   search_text: string | null;
   /** Generated column from migration 0004; never written by the app. */
   notes_length: number;
+
+  /* Added in migration 0008, for imported trades. All nullable: a broker
+     export carries any subset of them, and a missing value stays missing
+     rather than becoming a zero. */
+  exit_price: number | null;
+  size: number | null;
+  /** The broker's own realised figure, stored as given and never recomputed. */
+  pnl: number | null;
+  commission: number | null;
+  swap: number | null;
+  timeframe: string | null;
+  opened_at: string | null;
+  closed_at: string | null;
+  /** manual, csv_import or screenshot. */
+  source: string;
+  import_batch_id: string | null;
+  /** Null for anything not imported, and for a duplicate kept deliberately. */
+  import_fingerprint: string | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -184,7 +203,18 @@ export type Database = {
           | "notes_length"
           | "created_at"
           | "updated_at"
-        >;
+        
+          | "exit_price"
+          | "size"
+          | "pnl"
+          | "commission"
+          | "swap"
+          | "timeframe"
+          | "opened_at"
+          | "closed_at"
+          | "source"
+          | "import_batch_id"
+          | "import_fingerprint">;
         Update: Partial<SetupRow>;
         Relationships: [];
       };

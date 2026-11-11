@@ -10,9 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test:ai": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/ai/run.ts",
     "test:ai:wire": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/ai/gemini-wire.ts",
-    "test": "npm run test:ai && npm run test:ai:wire && npm run test:import && npm run test:mapper",
+    "test": "npm run test:ai && npm run test:ai:wire && npm run test:import && npm run test:mapper && npm run test:normalizer",
     "test:import": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/conventions.ts",
-    "test:mapper": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/mapper.ts"
+    "test:mapper": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/mapper.ts",
+    "test:normalizer": "node --experimental-strip-types --import ./tests/ai/register.mjs tests/import/normalizer.ts"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",
@@ -31,6 +32,7 @@
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@tanstack/react-query": "^5.102.8",
+    "@types/papaparse": "^5.5.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^13.2.0",
@@ -38,6 +40,7 @@
     "lucide-react": "^1.43.0",
     "next": "16.3.4",
     "next-themes": "^0.4.6",
+    "papaparse": "^5.7.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.87.0",
