@@ -420,17 +420,29 @@ export function HowItWorks() {
         description="Three habits, in the order they have to happen. The first one takes about forty seconds; the third one is the reason you did the first two."
       />
 
-      <ol className="relative mt-12 flex flex-col gap-12 sm:mt-16 sm:gap-16 lg:gap-6">
-        {STEPS.map((step, index) => (
+      <ol className="relative mt-14 flex flex-col gap-16 sm:mt-20 sm:gap-20 lg:gap-16">
+        {STEPS.map((step, index) => {
+          // Mirrored on every second step, which is what gives the sequence
+          // a rhythm instead of three identical rows.
+          //
+          // An earlier attempt at this was reverted because swapping the
+          // column order also swapped the track widths, so the mockup landed
+          // in the 21rem text track and rendered squeezed. The fix is to
+          // mirror the template rather than reorder within it: the mockup
+          // holds the `1fr` track and the prose holds `21rem` on both sides,
+          // so the two layouts are reflections of one another and nothing
+          // changes size.
+          const mirrored = index % 2 === 1;
+
+          return (
           <li
             key={step.title}
-            // Text left, mockup right, on every step. An alternating layout
-            // was tried and thrown away: swapping the order meant whichever
-            // column held the mockup changed width with it, so two of the
-            // three mockups rendered squeezed. Within a single ordered list,
-            // consistency is the readable choice — the variety the page needs
-            // is between sections, not between items of one list.
-            className="relative grid grid-cols-1 items-center gap-x-10 gap-y-6 lg:grid-cols-[2.25rem_minmax(0,21rem)_minmax(0,1fr)]"
+            className={cn(
+              "relative grid grid-cols-1 items-center gap-x-12 gap-y-6",
+              mirrored
+                ? "lg:grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,21rem)]"
+                : "lg:grid-cols-[2.25rem_minmax(0,21rem)_minmax(0,1fr)]",
+            )}
           >
             {/* The spine. It carries the sequence, which is the one thing a
                 reader has to understand about these three: they are ordered.
@@ -457,7 +469,7 @@ export function HowItWorks() {
               ) : null}
             </div>
 
-            <Reveal>
+            <Reveal className={mirrored ? "lg:order-3" : undefined}>
               <h3 className="display text-[1.6rem] text-fg sm:text-[2.1rem]">
                 {step.title}
               </h3>
@@ -466,13 +478,16 @@ export function HowItWorks() {
               </p>
             </Reveal>
 
-            <div className="relative">
+            <div className={cn("relative", mirrored && "lg:order-2")}>
               {/* `reverse` yaws the panel so its left edge recedes, which is
                   what keeps the bottom-left corner clear for the glass card
                   above. Same sign on every step, so the cards land in the
                   same place each time rather than wherever there happened to
                   be room. */}
-              <IsometricStage reverse>{step.mockup}</IsometricStage>
+              {/* The yaw follows the side the panel sits on, so each mockup
+                  turns its near edge towards the prose it belongs to rather
+                  than away from it. */}
+              <IsometricStage reverse={!mirrored}>{step.mockup}</IsometricStage>
               {/* On a phone the glass sits under the mockup. There is no room
                   to float a card over a 335px-wide screen without covering the
                   very rows it is commenting on; from `sm` up there is, and the
@@ -484,7 +499,8 @@ export function HowItWorks() {
               ) : null}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ol>
     </Section>
   );
@@ -606,6 +622,139 @@ export function AiReview() {
           checks are the ones in your own written plan, so no two look alike.
         </p>
       </Reveal>
+    </Section>
+  );
+}
+
+/* ========================================================================== */
+/* Bringing an existing history in                                            */
+/* ========================================================================== */
+
+/**
+ * The mapping step of the import wizard, as it actually behaves.
+ *
+ * Every column name on the left is a real header from a MetaTrader
+ * statement, and every confidence chip is a value the mapper really
+ * produces. "Contracts" is shown unresolved on purpose: it is the genuine
+ * ambiguous case — Bybit uses it for the symbol, other venues use it for
+ * quantity — and the product asks rather than guesses. A mockup that showed
+ * six green ticks would be advertising a certainty the importer does not
+ * claim.
+ */
+const MAPPED = [
+  { column: "Symbol", field: "Ticker", state: "exact" },
+  { column: "Type", field: "Direction", state: "exact" },
+  { column: "Open Time", field: "Opened at", state: "exact" },
+  { column: "S / L", field: "Stop loss", state: "exact" },
+  { column: "Profit", field: "Net P&L", state: "exact" },
+  { column: "Contracts", field: "Choose a field", state: "ask" },
+] as const;
+
+function ImportMockup() {
+  return (
+    <Panel className="w-full">
+      <div className="flex items-center gap-2 border-b border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
+        <span className="text-[12.5px] font-semibold tracking-tight text-fg">
+          Match the columns
+        </span>
+        <span className="numeric ml-auto text-[11px] text-fg-subtle">
+          1,284 rows · comma
+        </span>
+      </div>
+
+      <ul className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+        {MAPPED.map((row, index) => (
+          <li
+            key={row.column}
+            className="sv-reveal-scroll flex items-center gap-3 px-4 py-2.5"
+            style={{ "--sv-delay": `${index * 70}ms` } as React.CSSProperties}
+          >
+            <span className="numeric w-[5.6rem] shrink-0 truncate text-[11.5px] text-fg-muted">
+              {row.column}
+            </span>
+            <span className="shrink-0 text-[11px] text-fg-subtle" aria-hidden="true">
+              →
+            </span>
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate text-[12px] font-medium",
+                row.state === "exact" ? "text-fg" : "text-fg-subtle",
+              )}
+            >
+              {row.field}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                row.state === "exact"
+                  ? "bg-positive-soft text-positive"
+                  : "bg-accent-soft text-accent-on-soft",
+              )}
+            >
+              {row.state === "exact" ? "Exact" : "Needs you"}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex items-center gap-2 border-t border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
+        <span className="numeric text-[11px] text-fg-muted">
+          1,281 ready
+        </span>
+        <span className="numeric ml-auto text-[11px] text-fg-subtle">
+          3 already in your library
+        </span>
+      </div>
+    </Panel>
+  );
+}
+
+export function BringItIn() {
+  return (
+    <Section id="import" className="border-t border-border">
+      {/* Visual left, prose right — the mirror of the step above it, so the
+          page alternates between sections rather than inside them. */}
+      <div className="grid grid-cols-1 items-center gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+        <div className="relative">
+          <IsometricStage>
+            <ImportMockup />
+          </IsometricStage>
+
+          <div className="mt-6 flex justify-center lg:mt-0 lg:block">
+            {/* Clear of the panel, not over it. At `bottom-2` the card landed
+                across the last two mapping rows and the ready count — the
+                exact rows it is commenting on, which is the one place it
+                must not be. */}
+            <FloatingCard className="sv-slide-in w-full max-w-[20rem] lg:absolute lg:-bottom-8 lg:-right-10 lg:z-10 lg:w-[15rem]">
+              <p className="text-[11.5px] font-semibold tracking-tight text-accent">
+                Before anything is written
+              </p>
+              <p className="mt-1.5 text-[13px] leading-snug text-fg">
+                Every row is shown as it will be saved, with the dates and
+                decimals it read — and whatever it could not read said out
+                loud.
+              </p>
+            </FloatingCard>
+          </div>
+        </div>
+
+        <Reveal>
+          <h2 className="display text-[1.6rem] text-fg sm:text-[2.1rem]">
+            Bring in the trades you already took.
+          </h2>
+          <p className="mt-4 text-[15.5px] leading-relaxed text-fg-muted sm:text-[16.5px]">
+            Point it at a CSV from MetaTrader, TradingView, Binance, Bybit or
+            cTrader. It works out the delimiter, which column is which, and
+            whether 03/04 is March or April — then asks you about anything it
+            genuinely cannot tell, instead of guessing and being wrong a
+            thousand rows at a time.
+          </p>
+          <p className="mt-4 text-[15.5px] leading-relaxed text-fg-muted sm:text-[16.5px]">
+            Trades you have already imported are recognised and skipped, so
+            running the same statement twice does not double your history.
+          </p>
+        </Reveal>
+      </div>
     </Section>
   );
 }

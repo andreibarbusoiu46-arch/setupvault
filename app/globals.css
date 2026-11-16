@@ -57,20 +57,11 @@
   --fg-muted: #52525b;
   --fg-subtle: #71717a;
 
-  /* Accents — the one brand hue.
-     The identity blue is #3478F6, which is what the dark theme uses at full
-     strength. On white it measures 3.4:1, under the floor for body text, so
-     light mode runs two steps down the same ramp rather than a different
-     colour: same hue family, legible weight. */
+  /* Accents — modern fintech blue/indigo */
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-fg: #ffffff;
   --accent-soft: rgb(37 99 235 / 0.1);
-  /* The cyan highlight. Never carries meaning on its own and never sets
-     text — it is the light in the globe, the top of a gradient, the far end
-     of a beam. Meaning stays with --accent and the trading pair. */
-  --accent-cyan: #0e9bc4;
-  --accent-cyan-soft: rgb(14 155 196 / 0.12);
   /* Accent text sitting ON the accent tint. --accent itself measures 4.45:1
      there — a hair under the floor for the 12px these chips use — because the
      tint lifts the background towards the text. One step down the ramp gives
@@ -114,12 +105,9 @@
      intentional. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Ambient light - subtle, elegant gradient blurs.
-     Both stops are now the brand blue and its cyan highlight. The second was
-     indigo, which pulled the whole page half a step towards violet — the one
-     hue the identity is meant not to have. */
-  --ambient-one: rgb(52 120 246 / 0.07);
-  --ambient-two: rgb(14 155 196 / 0.06);
+  /* Ambient light - subtle, elegant gradient blurs */
+  --ambient-one: rgb(37 99 235 / 0.07);
+  --ambient-two: rgb(79 70 229 / 0.07);
 
   /* Elevation, as variables so the dark theme can deepen them */
   --elevated:
@@ -154,16 +142,11 @@
    -------------------------------------------------------------------------- */
 
 .dark {
-  /* Three steps of one material, not three greys: near-black, then midnight,
-     then navy. Each is a touch bluer and a touch lighter than the one under
-     it, so depth reads as light arriving rather than as a lighter rectangle. */
-  --canvas: #05070b;
-  --canvas-subtle: rgb(120 170 255 / 0.04);
-  --surface: #080d17;
-  --surface-raised: #0b1424;
-  /* Blue-tinted rather than white: a white wash on a navy surface greys it,
-     which is how a hover state ends up looking like a disabled one. */
-  --surface-hover: rgb(75 145 255 / 0.09);
+  --canvas: #07090f;
+  --canvas-subtle: rgb(255 255 255 / 0.03);
+  --surface: #0d1119;
+  --surface-raised: #131926;
+  --surface-hover: rgb(255 255 255 / 0.06);
 
   --glass-control: rgb(255 255 255 / 0.1);
   --glass-control-hover: rgb(255 255 255 / 0.16);
@@ -184,52 +167,46 @@
 
   --glass-control-solid: #1a1f29;
 
-  --glass: rgb(255 255 255 / 0.045);
+  --glass: rgb(255 255 255 / 0.05);
   --glass-strong: rgb(255 255 255 / 0.08);
-  --glass-border: rgb(255 255 255 / 0.12);
+  --glass-border: rgb(255 255 255 / 0.10);
   --glass-highlight: rgb(255 255 255 / 0.08);
 
   --border: rgb(255 255 255 / 0.10);
   --border-strong: rgb(255 255 255 / 0.18);
 
-  --fg: #f5f7fb;
-  --fg-muted: #929baa;
-  /* A tier below --fg-muted and still over the floor at 13px: measured
-     against --surface-raised, which is the darkest thing it is ever set on. */
-  --fg-subtle: #7e8798;
+  --fg: #f3f5f9;
+  --fg-muted: #a2aaba;
+  /* Was #737c8e, which measured 4.19:1 against the raised surface — under the
+     floor for the 13px it is used at. 5.12:1 here, still clearly a tier below
+     --fg-muted. */
+  --fg-subtle: #828b9b;
 
-  /* The identity blue, lifted one step for the dark canvas. #3478F6 itself is
-     the brand value and lives in the globe and the gradients, where nothing
-     has to be read off it. */
-  --accent: #4b91ff;
-  --accent-hover: #7aaeff;
-  --accent-fg: #04101f;
-  --accent-soft: rgb(75 145 255 / 0.14);
-  --accent-on-soft: #7aaeff;
+  /* Lifted from the light blue: #2563eb goes muddy on a dark canvas. */
+  --accent: #4d8bf8;
+  --accent-hover: #74a5fa;
+  --accent-fg: #07101f;
+  --accent-soft: rgb(77 139 248 / 0.16);
+  /* 4.46:1 on the tint for --accent; 5.96:1 for this. */
+  --accent-on-soft: #74a5fa;
 
-  /* The cyan highlight. Decoration and light only — see the light theme. */
-  --accent-cyan: #51d8ff;
-  --accent-cyan-soft: rgb(81 216 255 / 0.12);
+  --orb-hi: #a8c6ff;
+  --orb-mid: #3f7bf0;
+  --orb-lo: #0b1c48;
+  --orb-rim: rgb(255 255 255 / 0.35);
 
-  --orb-hi: #9fd9ff;
-  --orb-mid: #3478f6;
-  --orb-lo: #06163a;
-  --orb-rim: rgb(159 217 255 / 0.3);
+  --positive: #19c08a;
+  --positive-soft: rgb(25 192 138 / 0.16);
+  --negative: #fb7185;
+  --negative-soft: rgb(251 113 133 / 0.16);
+  --neutral: #a2aaba;
 
-  --positive: #20c997;
-  --positive-soft: rgb(32 201 151 / 0.14);
-  --negative: #ff626e;
-  --negative-soft: rgb(255 98 110 / 0.14);
-  --neutral: #929baa;
+  --destructive: #fb7185;
+  --ring: rgb(77 139 248 / 0.45);
 
-  --destructive: #ff626e;
-  --ring: rgb(75 145 255 / 0.45);
-
-  /* Ambient blue light, held well below neon. The second stop is cyan, so
-     the page is lit by one source that cools towards its edge rather than by
-     two unrelated colours. */
-  --ambient-one: rgb(52 120 246 / 0.13);
-  --ambient-two: rgb(81 216 255 / 0.06);
+  /* A faint glow rather than a neon one. */
+  --ambient-one: rgb(77 139 248 / 0.11);
+  --ambient-two: rgb(129 140 248 / 0.09);
 
   /* Shadows carry depth on dark by being deeper, not larger. */
   --elevated:
@@ -247,9 +224,7 @@
   --glass-strong-sheen-top: rgb(255 255 255 / 0.10);
   --glass-strong-sheen-bottom: rgb(255 255 255 / 0.04);
   --edge-highlight: rgb(255 255 255 / 0.10);
-  /* Tinted, so the background grid belongs to the same light as everything
-     else rather than reading as a grey mesh laid over a blue page. */
-  --grid-line: rgb(120 170 255 / 0.055);
+  --grid-line: rgb(255 255 255 / 0.04);
 
   color-scheme: dark;
 }
@@ -277,8 +252,6 @@
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
   --color-accent-on-soft: var(--accent-on-soft);
-  --color-accent-cyan: var(--accent-cyan);
-  --color-accent-cyan-soft: var(--accent-cyan-soft);
 
   --color-positive: var(--positive);
   --color-positive-soft: var(--positive-soft);
@@ -825,56 +798,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sv-ellipsis::after { animation: none; }
-}
-
-/* --------------------------------------------------------------------------
-   HERO BAND
-   The hero is dark in both themes, so the two controls in it cannot use the
-   themed button variants: `solid` inverts to near-black on a light page and
-   `glass` inverts to near-white, and both would then be sitting on a dark
-   field — a black button on black, or white text on white. These two are
-   pinned to the dark field instead, which is the honest consequence of a
-   band that does not follow the theme.
-   -------------------------------------------------------------------------- */
-
-.sv-hero-cta {
-  background-color: #f5f7fb;
-  color: #05070b;
-  transition: background-color 160ms var(--ease-out), transform 160ms var(--ease-out);
-}
-.sv-hero-cta:hover {
-  background-color: #ffffff;
-}
-.sv-hero-cta:active {
-  transform: scale(0.97);
-}
-
-.sv-hero-ghost {
-  background-color: rgb(255 255 255 / 0.06);
-  border: 1px solid rgb(255 255 255 / 0.14);
-  color: #e6ebf4;
-  transition: background-color 160ms var(--ease-out), transform 160ms var(--ease-out);
-}
-.sv-hero-ghost:hover {
-  background-color: rgb(255 255 255 / 0.11);
-}
-.sv-hero-ghost:active {
-  transform: scale(0.97);
-}
-
-/* The orbiting panels.
-
-   A long, offset drift rather than a float: each panel is given a different
-   delay so they never rise and fall together, which is what makes a set of
-   floating cards read as a mechanism. Transform only, so it composites. */
-@keyframes sv-drift {
-  0%   { transform: translate3d(0, 0, 0); }
-  50%  { transform: translate3d(0, -10px, 0); }
-  100% { transform: translate3d(0, 0, 0); }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .sv-drift {
-    animation: sv-drift 9s cubic-bezier(0.37, 0, 0.63, 1) infinite;
-  }
 }

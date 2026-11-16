@@ -9,7 +9,11 @@ import { MarketingNav } from "@/features/marketing/components/marketing-nav";
 import { PricingPreview } from "@/features/marketing/components/pricing-preview";
 import { ProductPreview } from "@/features/marketing/components/product-preview";
 import { Problem } from "@/features/marketing/components/problem";
-import { AiReview, HowItWorks } from "@/features/marketing/components/story";
+import {
+  AiReview,
+  BringItIn,
+  HowItWorks,
+} from "@/features/marketing/components/story";
 import { BuildingInPublic } from "@/features/marketing/components/building-in-public";
 
 /**
@@ -87,6 +91,10 @@ export default async function LandingPage() {
             something to fix. */}
         <Problem />
         <HowItWorks />
+        {/* Import sits after the three habits and before the review: it is
+            how someone with a history already behind them joins the story at
+            step two rather than step one. */}
+        <BringItIn />
         <AiReview />
 
         <Features />
