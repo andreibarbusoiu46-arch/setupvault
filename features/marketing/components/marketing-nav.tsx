@@ -67,7 +67,9 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 h-[calc(4rem+env(safe-area-inset-top))]",
           "backdrop-blur-2xl transition-opacity duration-500",
-          "bg-white/60 dark:bg-[#07090f]/55",
+          // The token rather than a literal: this was pinned to the old
+          // canvas value and stayed one shade off after the palette moved.
+          "bg-white/60 dark:bg-canvas/55",
           "after:absolute after:inset-x-0 after:bottom-0 after:h-px",
           "after:bg-gradient-to-r after:from-transparent after:via-black/10 after:to-transparent",
           "dark:after:via-white/[0.09]",
@@ -88,7 +90,7 @@ export function MarketingNav({ isAuthenticated }: { isAuthenticated: boolean }) 
             transition={{ duration: 0.28, ease: ENTER }}
             className={cn(
               "fixed inset-0 flex h-dvh flex-col backdrop-blur-2xl md:hidden",
-              "bg-white/85 dark:bg-[#07090f]/88",
+              "bg-white/85 dark:bg-canvas/88",
             )}
             style={{
               paddingTop: "calc(4rem + env(safe-area-inset-top))",

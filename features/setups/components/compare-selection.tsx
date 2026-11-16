@@ -169,7 +169,8 @@ export function CompareBar() {
         className={cn(
           "sv-compare-bar flex w-full max-w-xl items-center gap-3 rounded-2xl px-3 py-2.5",
           "border border-black/[0.08] bg-white/80 backdrop-blur-2xl",
-          "dark:border-white/[0.10] dark:bg-[#0d1119]/85",
+          // The token, not the old surface literal it was pinned to.
+          "dark:border-white/[0.10] dark:bg-surface/85",
           "shadow-[0_1px_2px_rgb(0_0_0/0.2),0_16px_40px_-12px_rgb(0_0_0/0.45)]",
         )}
       >
