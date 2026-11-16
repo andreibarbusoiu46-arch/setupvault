@@ -41,7 +41,9 @@ function Card({ name }: { name: string }) {
         // The spacing is a trailing margin rather than a gap on the track.
         // See the note in globals.css: a gap breaks the seam arithmetic.
         "mr-3 flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 sm:mr-4 sm:px-5 sm:py-3",
-        "glass-note backdrop-blur-xl backdrop-saturate-150",
+        // `.glass-tile`, not `.glass-note`: see the note in globals.css. The
+        // note depends on content behind it and there is none here.
+        "glass-tile backdrop-blur-xl backdrop-saturate-150",
       )}
     >
       <span className="whitespace-nowrap text-[13px] font-semibold tracking-tight text-fg sm:text-[14px]">

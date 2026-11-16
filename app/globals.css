@@ -935,3 +935,31 @@
     overflow-x: auto;
   }
 }
+
+/* A tile for the marquee, which sits on the page rather than on a mockup.
+
+   `.glass-note` was reused here first and was almost invisible: it is a
+   72%-transparent surface, which works over a demonstration because there
+   is bright content behind it to tint it and to blur. Over empty page
+   background there is nothing behind it, so a dark translucent surface on a
+   dark page composites to within about four levels of the page itself —
+   measured at rgb(11,15,22) against a canvas of rgb(7,9,15). The text read;
+   the card did not.
+
+   So this one does not depend on anything behind it: it is nearly opaque,
+   built from the raised surface rather than the flat one, and carries the
+   stronger border. The blur stays as a utility in the markup for the moment
+   a card crosses something, but it is no longer load-bearing. */
+.glass-tile {
+  background-color: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+  background-image: linear-gradient(
+    180deg,
+    var(--glass-sheen-top),
+    var(--glass-sheen-bottom)
+  );
+  border: 1px solid var(--border-strong);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    0 1px 2px -1px rgb(0 0 0 / 0.3),
+    0 12px 28px -16px rgb(16 24 40 / 0.55);
+}
