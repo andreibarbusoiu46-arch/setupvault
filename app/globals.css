@@ -893,3 +893,45 @@
 .sv-type {
   animation: sv-type 620ms steps(6, end) both;
 }
+
+/* --------------------------------------------------------------------------
+   PLATFORM MARQUEE
+   A seamless loop, which is a geometry problem before it is an animation
+   one. The track holds the group exactly twice and travels -50%, which is
+   one group width, so the frame it ends on is pixel-identical to the frame
+   it started on and the repeat is invisible.
+
+   The spacing lives on the items as a trailing margin rather than as `gap`
+   on the track. With `gap` the track is 2 groups PLUS one gap, so -50% is no
+   longer one group width and the seam drifts by half a gap every lap —
+   which reads as a stutter once a minute and is maddening to find.
+   -------------------------------------------------------------------------- */
+
+@keyframes sv-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+.sv-marquee-track {
+  display: flex;
+  width: max-content;
+  /* Linear, and no fill mode: any easing would visibly slow at the seam,
+     which is the one place the loop must be uniform. */
+  animation: sv-marquee 46s linear infinite;
+  will-change: transform;
+}
+
+/* The global reduced-motion block collapses every animation to 0.001ms,
+   which here would snap the track to -50% and park it there. That is not a
+   still marquee, it is a marquee stopped in the wrong place, so this stops
+   it properly instead and the row becomes something the reader can scroll
+   by hand. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-marquee-track {
+    animation: none !important;
+    transform: none !important;
+  }
+  .sv-marquee-viewport {
+    overflow-x: auto;
+  }
+}

@@ -79,6 +79,28 @@ console.log("\n--- Bybit ---");
   check("qty -> size", f("size"), "Qty");
 }
 
+console.log("\n--- cTrader ---");
+{
+  // Measured against the real mapper before this suite existed: "Closing
+  // price" fell through to entry's bare "price" suffix, "Closing time" was
+  // claimed by opened_at's bare "time", and "Net USD" matched nothing — so a
+  // cTrader export imported with no exit, no close and no P&L, and the
+  // landing page was about to advertise the platform anyway.
+  const headers = ["Symbol", "Direction", "Volume", "Entry price", "Closing price", "Entry time", "Closing time", "Commission", "Swap", "Net USD", "Stop loss", "Take profit"];
+  const rows = [["EURUSD", "Buy", "10000", "1.08420", "1.09180", "03/04/2026 07:00:00", "03/04/2026 11:15:00", "-0.80", "0.00", "76.00", "1.08180", "1.09180"]];
+  const f = got(headers, rows);
+  check("symbol", f("ticker"), "Symbol");
+  check("direction", f("direction"), "Direction");
+  check("entry price", f("entry"), "Entry price");
+  check("closing price -> exit", f("exit_price"), "Closing price");
+  check("entry time -> opened", f("opened_at"), "Entry time");
+  check("closing time -> closed", f("closed_at"), "Closing time");
+  check("net <currency> -> pnl", f("pnl"), "Net USD");
+  check("volume -> size", f("size"), "Volume");
+  const m = mapColumns(headers, rows);
+  check("nothing required is missing", m.missingRequired, []);
+}
+
 console.log("\n--- TradingView-ish / generic ---");
 {
   const headers = ["Symbol", "Side", "Entry Price", "Exit Price", "Stop Loss", "Take Profit", "Quantity", "Net P&L", "Entry Time", "Exit Time", "Timeframe", "Setup", "Comment"];

@@ -62,6 +62,9 @@ export const ALIASES: Record<TradeField, string[]> = {
   exit_price: [
     "exit", "exitprice", "closeprice", "averageexit", "avgexit", "priceclose",
     "closerate", "exitrate", "settlementprice", "closeavg",
+    // cTrader writes "Closing price", not "Close price". Without this the
+    // column fell through to `entry`'s "price" suffix and the exit was lost.
+    "closingprice", "closingrate",
   ],
   stop_loss: ["sl", "stoploss", "stopprice", "stop", "slprice", "stoplossprice"],
   take_profit: [
@@ -76,6 +79,13 @@ export const ALIASES: Record<TradeField, string[]> = {
     "pnl", "profit", "netprofit", "realizedpnl", "realisedpnl", "pl",
     "grossprofit", "profitloss", "netpl", "result", "gain", "realizedprofit",
     "closedpnl",
+    // cTrader names this column after the account currency — "Net USD",
+    // "Net EUR" and so on — so there is no single header to match. These are
+    // the currencies retail accounts are actually denominated in. Anything
+    // else still appears in the mapping step for the user to pick; it is the
+    // automatic match that is missing, not the ability to import.
+    "net", "netusd", "neteur", "netgbp", "netjpy", "netaud", "netcad",
+    "netchf", "netnzd",
   ],
   commission: ["commission", "fee", "tradingfee", "fees", "comm", "feespaid"],
   swap: ["swap", "funding", "financing", "rollover", "interest", "fundingfee"],
@@ -87,6 +97,10 @@ export const ALIASES: Record<TradeField, string[]> = {
   closed_at: [
     "closetime", "exittime", "closedate", "closedat", "exitdate", "closed",
     "settlementdate", "updatetime",
+    // Same again: "Closing time" was being claimed by `opened_at` through
+    // its bare "time" alias, so a cTrader export filed every trade under its
+    // open and had no close at all.
+    "closingtime", "closingdate",
   ],
   timeframe: ["timeframe", "interval", "period", "tf", "resolution", "chartperiod"],
   strategy: ["strategy", "setup", "system", "playbook", "play", "method", "model"],

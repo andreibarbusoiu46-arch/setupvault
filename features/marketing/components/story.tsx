@@ -8,6 +8,7 @@ import { Reveal } from "@/features/marketing/components/reveal";
 import { Section, SectionHeading } from "@/features/marketing/components/section";
 import { CaptureChart } from "@/features/marketing/components/capture-chart";
 import { AnimatedNumber } from "@/features/marketing/components/animated-number";
+import { PlatformMarquee } from "@/features/marketing/components/platform-marquee";
 import { useSequence } from "@/features/marketing/lib/use-sequence";
 import { LEVELS, RISK_REWARD, SESSION } from "@/features/marketing/data/nq-session";
 import {
@@ -909,7 +910,11 @@ export function AiReview() {
         description="The model never sees your broker and never predicts a price. It reads one setup against the rules you wrote for yourself, and names the thing that cost you the most — in plain language, with the evidence under it."
       />
 
-      <div ref={ref} className="relative mx-auto mt-12 w-full max-w-4xl sm:mt-14">
+      {/* The top padding is room for the notification. On a phone the panel
+          header is only a few words wide and the chip was landing straight
+          across "Execution review"; from `sm` up there is room for it to
+          straddle the top edge, which is where it looks best. */}
+      <div ref={ref} className="relative mx-auto mt-12 w-full max-w-4xl pt-7 sm:mt-14 sm:pt-0">
         <Reveal>
           <AiReviewMockup step={step} />
         </Reveal>
@@ -919,7 +924,7 @@ export function AiReview() {
             where the market goes next. */}
         <div
           className={cn(
-            "pointer-events-none absolute left-1/2 -top-3 z-20 -translate-x-1/2",
+            "pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 sm:-top-3",
             "transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
             step >= 6 ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
           )}
@@ -1164,6 +1169,12 @@ export function BringItIn() {
           </p>
         </Reveal>
       </div>
+
+      {/* The platforms the mapper is tested against, looping. It sits under
+          the demonstration rather than beside it so it reads as the answer
+          to "will it read mine?" — which is the question the mockup above
+          raises and cannot answer on its own. */}
+      <PlatformMarquee className="mt-14 sm:mt-16" />
     </Section>
   );
 }
