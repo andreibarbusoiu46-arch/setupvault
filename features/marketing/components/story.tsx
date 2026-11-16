@@ -1,16 +1,26 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Search, X } from "lucide-react";
+import { Check, FileText, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/features/marketing/components/reveal";
 import { Section, SectionHeading } from "@/features/marketing/components/section";
 import { CaptureChart } from "@/features/marketing/components/capture-chart";
-import { RISK_REWARD, SESSION } from "@/features/marketing/data/nq-session";
+import { AnimatedNumber } from "@/features/marketing/components/animated-number";
+import { useSequence } from "@/features/marketing/lib/use-sequence";
+import { LEVELS, RISK_REWARD, SESSION } from "@/features/marketing/data/nq-session";
+import {
+  COMPONENT_LABELS,
+  MAX_SCORE,
+  WEIGHTS,
+  type ScoreComponent,
+} from "@/features/setup-score/constants";
+import { gradeFor } from "@/features/setup-score/utils/score";
 import {
   EXPECTANCY_LABEL,
   NET_R_LABEL,
+  TRADE_COUNT,
   WIN_RATE,
 } from "@/features/marketing/data/playbook";
 
@@ -168,7 +178,7 @@ function FloatingCard({
 /* 1 — Capture                                                                */
 /* ========================================================================== */
 
-function CaptureMockup() {
+function CaptureMockup({ step }: { step: number }) {
   return (
     <Panel className="flex h-72 w-full sm:h-80">
       {/* The platform's own left rail. */}
@@ -184,8 +194,85 @@ function CaptureMockup() {
         ))}
       </div>
 
-      <CaptureChart />
+      <CaptureChart step={step} />
     </Panel>
+  );
+}
+
+/**
+ * The capture sequence, in milliseconds from the moment the section is seen.
+ *
+ * Read it as a sentence: the session draws, the entry goes on, the risk and
+ * reward open around it, the R multiple lands, and only then does the
+ * product say it saved anything. The last two are deliberately a beat apart
+ * — a confirmation that arrives at the same instant as the thing it is
+ * confirming reads as decoration rather than as a response.
+ */
+const CAPTURE_AT = [120, 1500, 1950, 2500, 2900] as const;
+
+/** 1 candles · 2 entry · 3 levels · 4 R plate · 5 saved */
+function CaptureStage() {
+  const { ref, step } = useSequence<HTMLDivElement>({ at: CAPTURE_AT, amount: 0.25 });
+
+  return (
+    <div ref={ref} className="relative">
+      <IsometricStage reverse>
+        <CaptureMockup step={step} />
+      </IsometricStage>
+
+      {/* The saved confirmation. Outside the tilted node, like every other
+          glass card in this file: a backdrop blur inside a preserve-3d
+          context is dropped by WebKit, and the card renders as a flat
+          rectangle with nothing behind it. */}
+      <div
+        className={cn(
+          "pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2",
+          "transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          step >= 5
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-2 opacity-0",
+        )}
+      >
+        <div className="glass-note glass-note-accent flex items-center gap-2 rounded-full px-3 py-1.5 backdrop-blur-xl backdrop-saturate-150">
+          <Check className="size-3 shrink-0 text-positive" aria-hidden="true" />
+          <span className="text-[11.5px] font-medium text-fg">Setup saved</span>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-center lg:mt-0 lg:block">
+        <FloatingCard className="sv-slide-in w-full max-w-[20rem] lg:absolute lg:-left-10 lg:bottom-2 lg:z-10 lg:w-[15.5rem]">
+          <p className="text-[11.5px] font-semibold tracking-tight text-accent">
+            Setup thesis
+          </p>
+          <p className="mt-1.5 text-[13px] leading-snug text-fg">
+            Swept the Asian low, reclaimed it on the 15m. Entry on the retest,
+            stop below the wick.
+          </p>
+
+          {/* The levels, filled in as the chart draws them, so the card and
+              the chart are plainly the same record. */}
+          <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-2.5">
+            {[
+              { label: "Entry", value: LEVELS.entry, at: 2, tone: "text-fg" },
+              { label: "Stop", value: LEVELS.stop, at: 3, tone: "text-negative" },
+              { label: "Target", value: LEVELS.target, at: 3, tone: "text-positive" },
+            ].map((level) => (
+              <div key={level.label}>
+                <dt className="text-[9.5px] text-fg-subtle">{level.label}</dt>
+                <dd className={cn("numeric text-[11.5px] font-semibold", level.tone)}>
+                  <AnimatedNumber
+                    value={level.value}
+                    run={step >= level.at}
+                    duration={0.8}
+                    format={(v) => Math.round(v).toLocaleString("en-US")}
+                  />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </FloatingCard>
+      </div>
+    </div>
   );
 }
 
@@ -208,10 +295,33 @@ const VAULT_ROWS = [
     play: "London breakout",
     ratio: RISK_REWARD,
     win: true,
+    direction: "Long",
+    score: 94,
   },
-  { pair: "EURUSD", play: "Asian range fade", ratio: -1, win: false },
-  { pair: "XAUUSD", play: "Liquidity sweep", ratio: 1.8, win: true },
-  { pair: "NQ100", play: "Opening drive", ratio: 2.4, win: true },
+  {
+    pair: "EURUSD",
+    play: "Asian range fade",
+    ratio: -1,
+    win: false,
+    direction: "Short",
+    score: 61,
+  },
+  {
+    pair: "XAUUSD",
+    play: "Liquidity sweep",
+    ratio: 1.8,
+    win: true,
+    direction: "Long",
+    score: 88,
+  },
+  {
+    pair: "NQ100",
+    play: "Opening drive",
+    ratio: 2.4,
+    win: true,
+    direction: "Long",
+    score: 79,
+  },
 ] as const;
 
 /** "+4.2R" / "−1.0R", with a real minus sign rather than a hyphen. */
@@ -219,7 +329,18 @@ function rLabel(ratio: number) {
   return `${ratio < 0 ? "\u2212" : "+"}${Math.abs(ratio).toFixed(1)}R`;
 }
 
-function OrganizeMockup() {
+/**
+ * The library, searching itself.
+ *
+ * `step`: 1 the field is focused and the query types · 2 the count lands ·
+ * 3 the rows arrive, staggered · 4 the first result is selected.
+ *
+ * The query types in CSS — a width animation in `ch` units over hidden
+ * overflow — rather than by slicing a string in React. Six characters would
+ * otherwise be six renders of the whole panel, and the caret has to keep its
+ * place between them.
+ */
+function OrganizeMockup({ step }: { step: number }) {
   return (
     <div className="relative flex w-full items-center justify-center">
       {/* The two records behind the one in front. */}
@@ -231,18 +352,30 @@ function OrganizeMockup() {
           <span className="text-[12.5px] font-semibold tracking-tight text-fg">
             Your library
           </span>
-          <span className="numeric ml-auto text-[11px] text-fg-subtle">
-            248 setups
+          <span
+            className="numeric ml-auto text-[11px] text-fg-subtle transition-opacity duration-300"
+            style={{ opacity: step >= 2 ? 1 : 0 }}
+          >
+            4 of 248
           </span>
         </div>
 
-        {/* Search. Inert, and it reads as inert: no caret, no focus ring, no
-            cursor-text. A mockup that looks typeable and is not is worse
-            than one that plainly is not. */}
         <div className="border-b border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
-          <div className="flex h-7 items-center gap-2 rounded-md border border-border bg-canvas px-2 text-[11px] text-fg-subtle">
+          <div
+            className={cn(
+              "flex h-7 items-center gap-2 rounded-md border bg-canvas px-2 text-[11px]",
+              "transition-colors duration-300",
+              step >= 1 ? "border-accent/50 text-fg" : "border-border text-fg-subtle",
+            )}
+          >
             <Search className="size-3 shrink-0" aria-hidden="true" />
-            <span>Search setups…</span>
+            {step >= 1 ? (
+              <span className="sv-type inline-block whitespace-nowrap align-bottom">
+                XAUUSD
+              </span>
+            ) : (
+              <span>Search setups…</span>
+            )}
             <span className="numeric ml-auto rounded border border-border px-1 text-[9px]">
               /
             </span>
@@ -250,17 +383,24 @@ function OrganizeMockup() {
         </div>
 
         <ul className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-          {VAULT_ROWS.map((row, index) => (
+          {VAULT_ROWS.map((row, index) => {
+            const shown = step >= 3;
+            return (
             <li
               key={row.play}
-              // Staggered on scroll, by CSS. Four rows fading in from zero
-              // under an IntersectionObserver, inside a preserve-3d stage, is
-              // the one combination this file already warns against: a miss
-              // leaves the rows permanently blank. This animation has
-              // `opacity: 1` as its base state, so a timeline that never runs
-              // simply shows the rows.
-              className="sv-reveal-scroll flex items-center gap-3 px-4 py-2.5"
-              style={{ "--sv-delay": `${index * 90}ms` } as React.CSSProperties}
+              className={cn(
+                "glass-row flex items-center gap-3 rounded-lg px-4 py-2.5",
+                // The first result is the one the query matched, so it is
+                // the one that gets picked out — not an arbitrary highlight.
+                step >= 4 && index === 0 && "bg-accent-soft",
+              )}
+              style={{
+                opacity: shown ? 1 : 0,
+                transform: shown ? "translate3d(0,0,0)" : "translate3d(0,8px,0)",
+                transition:
+                  "opacity 420ms cubic-bezier(0.32,0.72,0,1), transform 420ms cubic-bezier(0.32,0.72,0,1), background-color 300ms linear",
+                transitionDelay: shown ? `${index * 90}ms` : "0ms",
+              }}
             >
               <span
                 className={cn(
@@ -270,11 +410,28 @@ function OrganizeMockup() {
                 aria-hidden="true"
               />
               <div className="min-w-0 flex-1">
-                <p className="numeric truncate text-[12.5px] font-semibold tracking-tight text-fg">
+                <p className="numeric flex items-center gap-1.5 truncate text-[12.5px] font-semibold tracking-tight text-fg">
                   {row.pair}
+                  <span
+                    className={cn(
+                      "rounded px-1 py-px text-[8.5px] font-medium",
+                      row.direction === "Long"
+                        ? "bg-positive-soft text-positive"
+                        : "bg-negative-soft text-negative",
+                    )}
+                  >
+                    {row.direction}
+                  </span>
                 </p>
                 <p className="truncate text-[11px] text-fg-subtle">{row.play}</p>
               </div>
+
+              {/* The setup score, which is a grade out of 100 and not an
+                  opinion about the market. */}
+              <span className="glass-chip numeric hidden shrink-0 rounded-full px-1.5 py-0.5 text-[10px] text-fg-muted sm:inline-block">
+                {row.score}
+              </span>
+
               {/* The outcome carries its sign and its word-shape, not just a
                   hue: this green and this red sit dE 2.6 apart under
                   deuteranopia, so the leading + or minus is what actually
@@ -290,9 +447,25 @@ function OrganizeMockup() {
                 {rLabel(row.ratio)}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </Panel>
+    </div>
+  );
+}
+
+/** 1 query types · 2 count · 3 rows · 4 selection */
+const ORGANIZE_AT = [150, 1000, 1250, 2100] as const;
+
+function OrganizeStage() {
+  const { ref, step } = useSequence<HTMLDivElement>({ at: ORGANIZE_AT, amount: 0.25 });
+
+  return (
+    <div ref={ref} className="relative">
+      <IsometricStage>
+        <OrganizeMockup step={step} />
+      </IsometricStage>
     </div>
   );
 }
@@ -309,17 +482,41 @@ const SESSIONS = [
   { label: "Late NY", value: 18 },
 ];
 
-function AnalyzeMockup() {
+/**
+ * The performance panel, counting itself up.
+ *
+ * `step`: 1 the win rate counts · 2 the bars grow from the baseline ·
+ * 3 the session labels and the net figure land · 4 the three summary
+ * figures arrive.
+ *
+ * Every number here is computed from the R sequence in `playbook.ts`, not
+ * typed: the win rate, the expectancy and the net are all derived from the
+ * same sixty trades, so they cannot drift apart. The sequence is
+ * illustrative and the hero says so.
+ */
+function AnalyzeMockup({ step }: { step: number }) {
   return (
     <Panel className="w-full p-6 sm:p-7">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[11.5px] text-fg-subtle">Playbook win rate</p>
           <p className="stat mt-1.5 text-[2.6rem] leading-none text-fg">
-            {WIN_RATE}%
+            <AnimatedNumber
+              value={WIN_RATE}
+              run={step >= 1}
+              duration={1.2}
+              format={(v) => v.toFixed(1)}
+            />
+            %
           </p>
         </div>
-        <span className="flex items-center gap-1.5 rounded-lg border border-positive/20 bg-positive-soft px-2.5 py-1.5 text-[12.5px] font-semibold text-positive">
+        <span
+          className="flex items-center gap-1.5 rounded-lg border border-positive/20 bg-positive-soft px-2.5 py-1.5 text-[12.5px] font-semibold text-positive transition-all duration-500"
+          style={{
+            opacity: step >= 3 ? 1 : 0,
+            transform: step >= 3 ? "none" : "translateY(-4px)",
+          }}
+        >
           {NET_R_LABEL}
         </span>
       </div>
@@ -332,22 +529,34 @@ function AnalyzeMockup() {
           resolve, and the labels sit below rather than under the bars. */}
       <div className="mt-7">
         <div className="flex h-24 items-end gap-2.5 sm:h-28">
-          {SESSIONS.map((session) => (
+          {SESSIONS.map((session, index) => (
             <div
               key={session.label}
               className={cn(
-                "min-w-0 flex-1 rounded-t-md",
+                "min-w-0 flex-1 origin-bottom rounded-t-md",
                 session.value > 70 ? "bg-accent" : "bg-accent-soft",
               )}
-              style={{ height: `${session.value}%` }}
+              // Height stays fixed and the bar is scaled, so growth happens
+              // on the compositor instead of relaying out the row five
+              // times a frame.
+              style={{
+                height: `${session.value}%`,
+                transform: step >= 2 ? "scaleY(1)" : "scaleY(0)",
+                transition: "transform 700ms cubic-bezier(0.32, 0.72, 0, 1)",
+                transitionDelay: step >= 2 ? `${index * 80}ms` : "0ms",
+              }}
             />
           ))}
         </div>
         <div className="mt-2 flex gap-2.5">
-          {SESSIONS.map((session) => (
+          {SESSIONS.map((session, index) => (
             <span
               key={session.label}
-              className="min-w-0 flex-1 truncate text-center text-[9.5px] text-fg-subtle"
+              className="min-w-0 flex-1 truncate text-center text-[9.5px] text-fg-subtle transition-opacity duration-300"
+              style={{
+                opacity: step >= 3 ? 1 : 0,
+                transitionDelay: step >= 3 ? `${index * 60}ms` : "0ms",
+              }}
             >
               {session.label}
             </span>
@@ -359,9 +568,17 @@ function AnalyzeMockup() {
         {[
           { label: "Expectancy", value: EXPECTANCY_LABEL },
           { label: "Best session", value: "London" },
-          { label: "Streak", value: "6" },
-        ].map((item) => (
-          <div key={item.label} className="min-w-0">
+          { label: "Sample", value: `${TRADE_COUNT} trades` },
+        ].map((item, index) => (
+          <div
+            key={item.label}
+            className="min-w-0 transition-all duration-500"
+            style={{
+              opacity: step >= 4 ? 1 : 0,
+              transform: step >= 4 ? "none" : "translateY(6px)",
+              transitionDelay: step >= 4 ? `${index * 90}ms` : "0ms",
+            }}
+          >
             <p className="truncate text-[10.5px] text-fg-subtle">{item.label}</p>
             <p className="numeric mt-1 truncate text-[13.5px] font-semibold tracking-tight text-fg">
               {item.value}
@@ -373,42 +590,46 @@ function AnalyzeMockup() {
   );
 }
 
+/** 1 win rate · 2 bars · 3 labels and net · 4 summary */
+const ANALYZE_AT = [150, 700, 1500, 1900] as const;
+
+function AnalyzeStage() {
+  const { ref, step } = useSequence<HTMLDivElement>({ at: ANALYZE_AT, amount: 0.25 });
+
+  return (
+    <div ref={ref} className="relative">
+      <IsometricStage reverse>
+        <AnalyzeMockup step={step} />
+      </IsometricStage>
+    </div>
+  );
+}
+
 /* ========================================================================== */
 /* The three steps                                                            */
 /* ========================================================================== */
 
+/**
+ * Each step owns its whole stage now, rather than handing back a mockup and
+ * a card for the list to assemble. The sequences differ per step — the chart
+ * draws, the library searches, the dashboard counts — and a list that tried
+ * to orchestrate all three from outside would need to know what each one is.
+ */
 const STEPS = [
   {
     title: "Capture the moment, not the aftermath.",
     body: "Save the chart you were actually looking at, with your levels drawn on it and the thesis in your own words — while the trade is still open and you still remember why.",
-    mockup: <CaptureMockup />,
-    // Only this step keeps a glass card. It is the one that explains
-    // something the mockup cannot — what "the thesis in your own words"
-    // actually looks like. The other two had cards for symmetry, which is not
-    // a reason, and one of them landed on the rows it was annotating.
-    float: (
-      <FloatingCard className="sv-slide-in w-full max-w-[20rem] lg:absolute lg:bottom-2 lg:-left-10 lg:z-10 lg:w-[14.5rem]">
-        <p className="text-[11.5px] font-semibold tracking-tight text-accent">
-          Setup thesis
-        </p>
-        <p className="mt-1.5 text-[13px] leading-snug text-fg">
-          Swept the Asian low, reclaimed it on the 15m. Entry on the retest,
-          stop below the wick.
-        </p>
-      </FloatingCard>
-    ),
+    stage: <CaptureStage />,
   },
   {
     title: "One library, in your own vocabulary.",
     body: "Name a play once and reuse it. Tags, markets and sessions become the structure of the library, so finding the last twelve times you took this exact setup is one query, not an afternoon of scrolling.",
-    mockup: <OrganizeMockup />,
-    float: null,
+    stage: <OrganizeStage />,
   },
   {
     title: "The numbers you would have worked out by hand.",
     body: "Expectancy by playbook, by session, by market. Not a wall of every statistic that exists — the few that change what you do on Monday.",
-    mockup: <AnalyzeMockup />,
-    float: null,
+    stage: <AnalyzeStage />,
   },
 ] as const;
 
@@ -479,24 +700,7 @@ export function HowItWorks() {
             </Reveal>
 
             <div className={cn("relative", mirrored && "lg:order-2")}>
-              {/* `reverse` yaws the panel so its left edge recedes, which is
-                  what keeps the bottom-left corner clear for the glass card
-                  above. Same sign on every step, so the cards land in the
-                  same place each time rather than wherever there happened to
-                  be room. */}
-              {/* The yaw follows the side the panel sits on, so each mockup
-                  turns its near edge towards the prose it belongs to rather
-                  than away from it. */}
-              <IsometricStage reverse={!mirrored}>{step.mockup}</IsometricStage>
-              {/* On a phone the glass sits under the mockup. There is no room
-                  to float a card over a 335px-wide screen without covering the
-                  very rows it is commenting on; from `sm` up there is, and the
-                  cards position themselves against this wrapper. */}
-              {step.float ? (
-                <div className="mt-6 flex justify-center lg:mt-0 lg:block">
-                  {step.float}
-                </div>
-              ) : null}
+              {step.stage}
             </div>
           </li>
           );
@@ -517,7 +721,35 @@ const CRITERIA = [
   { label: "Exited two thirds early on a green candle", pass: false },
 ];
 
-function AiReviewMockup() {
+/**
+ * The demonstration setup's score, in the product's own units.
+ *
+ * The components and their ceilings are imported from the scoring module
+ * rather than retyped, so the mockup cannot drift from the rules the app
+ * actually applies, and the grade is read off `gradeFor` rather than
+ * asserted. The points below sum to 94, which is what the ring draws and
+ * what the figure counts to.
+ *
+ * The previous version had the ring at 88% of its circumference with "A+"
+ * in the middle, and the app's own grade table puts A+ at 90 and above. The
+ * picture disagreed with the product it was advertising.
+ */
+const DEMO_POINTS: Record<ScoreComponent, number> = {
+  riskReward: 20,
+  stopLoss: 20,
+  takeProfit: 15,
+  entry: 18,
+  strategy: 13,
+  documentation: 8,
+};
+
+const DEMO_SCORE = Object.values(DEMO_POINTS).reduce((sum, n) => sum + n, 0);
+const DEMO_GRADE = gradeFor(DEMO_SCORE);
+
+/** 2 * PI * r, for the ring below. */
+const RING = 2 * Math.PI * 34;
+
+function AiReviewMockup({ step }: { step: number }) {
   return (
     <Panel className="w-full">
       <div className="flex items-center gap-2.5 border-b border-black/[0.05] px-5 py-4 dark:border-white/[0.06]">
@@ -551,30 +783,57 @@ function AiReviewMockup() {
                 className="stroke-positive"
                 strokeWidth="6"
                 strokeLinecap="round"
-                strokeDasharray="214"
-                strokeDashoffset="26"
+                strokeDasharray={RING}
                 transform="rotate(-90 40 40)"
+                style={{
+                  strokeDashoffset:
+                    step >= 2 ? RING * (1 - DEMO_SCORE / MAX_SCORE) : RING,
+                  transition: "stroke-dashoffset 1100ms cubic-bezier(0.32, 0.72, 0, 1)",
+                }}
               />
             </svg>
-            <span className="stat absolute inset-0 flex items-center justify-center text-[1.5rem] text-fg">
-              A+
+            <span className="stat absolute inset-0 flex items-center justify-center text-[1.35rem] text-fg">
+              <AnimatedNumber
+                value={DEMO_SCORE}
+                run={step >= 2}
+                duration={1.1}
+                format={(v) => String(Math.round(v))}
+              />
             </span>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[14.5px] font-semibold leading-tight tracking-tight text-fg">
+            <p className="flex items-center gap-2 text-[14.5px] font-semibold leading-tight tracking-tight text-fg">
               You followed the plan you wrote.
             </p>
             <p className="mt-1.5 text-[12.5px] leading-snug text-fg-muted">
               The exit cost you 1.1R against your own target. Everything before
               it was executed as written.
             </p>
+            <span
+              className="glass-chip mt-2.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium text-fg transition-all duration-500"
+              style={{
+                opacity: step >= 4 ? 1 : 0,
+                transform: step >= 4 ? "scale(1)" : "scale(0.92)",
+              }}
+            >
+              <span className="stat text-positive">{DEMO_GRADE.grade}</span>
+              <span className="text-fg-subtle">{DEMO_GRADE.summary}</span>
+            </span>
           </div>
         </div>
 
         <ul className="divide-y divide-black/[0.05] border-t border-black/[0.05] dark:divide-white/[0.06] dark:border-white/[0.06] sm:border-t-0">
-          {CRITERIA.map((item) => (
-            <li key={item.label} className="flex items-center gap-3 px-5 py-3">
+          {CRITERIA.map((item, index) => (
+            <li
+              key={item.label}
+              className="flex items-center gap-3 px-5 py-3 transition-all duration-400"
+              style={{
+                opacity: step >= 3 ? 1 : 0,
+                transform: step >= 3 ? "none" : "translateX(8px)",
+                transitionDelay: step >= 3 ? `${index * 90}ms` : "0ms",
+              }}
+            >
               <span
                 className={cn(
                   "flex size-5 shrink-0 items-center justify-center rounded-full",
@@ -596,11 +855,49 @@ function AiReviewMockup() {
           ))}
         </ul>
       </div>
+
+      {/* The breakdown, in the product's real components and ceilings. */}
+      <div className="grid grid-cols-3 gap-x-4 gap-y-3 border-t border-black/[0.05] px-5 py-4 sm:grid-cols-6 dark:border-white/[0.06]">
+        {(Object.keys(WEIGHTS) as ScoreComponent[]).map((component, index) => {
+          const points = DEMO_POINTS[component];
+          const ceiling = WEIGHTS[component];
+          return (
+            <div key={component} className="min-w-0">
+              <p className="truncate text-[9.5px] text-fg-subtle">
+                {COMPONENT_LABELS[component]}
+              </p>
+              <p className="numeric mt-0.5 text-[11px] font-semibold text-fg">
+                {points}
+                <span className="text-fg-subtle">/{ceiling}</span>
+              </p>
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-border">
+                <div
+                  className={cn(
+                    "h-full origin-left rounded-full",
+                    points === ceiling ? "bg-positive" : "bg-accent",
+                  )}
+                  style={{
+                    width: `${(points / ceiling) * 100}%`,
+                    transform: step >= 5 ? "scaleX(1)" : "scaleX(0)",
+                    transition: "transform 620ms cubic-bezier(0.32, 0.72, 0, 1)",
+                    transitionDelay: step >= 5 ? `${index * 70}ms` : "0ms",
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </Panel>
   );
 }
 
+/** 1 panel · 2 ring and figure · 3 criteria · 4 grade · 5 breakdown · 6 done */
+const REVIEW_AT = [100, 400, 1500, 2100, 2400, 3000] as const;
+
 export function AiReview() {
+  const { ref, step } = useSequence<HTMLDivElement>({ at: REVIEW_AT, amount: 0.2 });
+
   return (
     <Section id="review" className="border-t border-border">
       {/* Centred and flat to the viewer. Every other mockup on this page is
@@ -612,9 +909,29 @@ export function AiReview() {
         description="The model never sees your broker and never predicts a price. It reads one setup against the rules you wrote for yourself, and names the thing that cost you the most — in plain language, with the evidence under it."
       />
 
-      <Reveal className="mx-auto mt-12 w-full max-w-4xl sm:mt-14">
-        <AiReviewMockup />
-      </Reveal>
+      <div ref={ref} className="relative mx-auto mt-12 w-full max-w-4xl sm:mt-14">
+        <Reveal>
+          <AiReviewMockup step={step} />
+        </Reveal>
+
+        {/* What the model did, said once and without implying it did more.
+            "Read" rather than "analysed", and nothing here claims a view on
+            where the market goes next. */}
+        <div
+          className={cn(
+            "pointer-events-none absolute left-1/2 -top-3 z-20 -translate-x-1/2",
+            "transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            step >= 6 ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
+          )}
+        >
+          <div className="glass-note glass-note-accent flex items-center gap-2 rounded-full px-3 py-1.5 backdrop-blur-xl backdrop-saturate-150">
+            <Check className="size-3 shrink-0 text-positive" aria-hidden="true" />
+            <span className="text-[11.5px] font-medium text-fg">
+              Setup read against your plan
+            </span>
+          </div>
+        </div>
+      </div>
 
       <Reveal delay={0.08}>
         <p className="mx-auto mt-6 max-w-xl text-center text-[13px] leading-relaxed text-fg-subtle">
@@ -650,56 +967,127 @@ const MAPPED = [
   { column: "Contracts", field: "Choose a field", state: "ask" },
 ] as const;
 
-function ImportMockup() {
+/**
+ * The mapping step, mapping itself.
+ *
+ * `step`: 1 the file lands and is read · 2 the headers are detected ·
+ * 3 each one connects to a field, in turn · 4 the counts settle.
+ *
+ * The connection is drawn as the arrow and the field name arriving together
+ * per row, staggered, because that is the actual unit of work: one column
+ * resolved. Animating all six at once would show a result, not a process.
+ */
+function ImportMockup({ step }: { step: number }) {
   return (
     <Panel className="w-full">
       <div className="flex items-center gap-2 border-b border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
         <span className="text-[12.5px] font-semibold tracking-tight text-fg">
           Match the columns
         </span>
-        <span className="numeric ml-auto text-[11px] text-fg-subtle">
+        <span
+          className="numeric ml-auto text-[11px] text-fg-subtle transition-opacity duration-300"
+          style={{ opacity: step >= 2 ? 1 : 0 }}
+        >
           1,284 rows · comma
         </span>
       </div>
 
-      <ul className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-        {MAPPED.map((row, index) => (
-          <li
-            key={row.column}
-            className="sv-reveal-scroll flex items-center gap-3 px-4 py-2.5"
-            style={{ "--sv-delay": `${index * 70}ms` } as React.CSSProperties}
+      {/* The file itself, which is the thing the reader actually recognises
+          from their own machine. */}
+      <div className="border-b border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
+        <div
+          className="glass-chip flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-all duration-500"
+          style={{
+            opacity: step >= 1 ? 1 : 0,
+            transform: step >= 1 ? "none" : "translateY(-6px)",
+          }}
+        >
+          <FileText className="size-3.5 shrink-0 text-accent" aria-hidden="true" />
+          <span className="numeric truncate text-[11px] text-fg">
+            statement-october.csv
+          </span>
+          <span
+            className={cn(
+              "ml-auto shrink-0 text-[10px] transition-colors duration-300",
+              step >= 2 ? "text-positive" : "text-fg-subtle",
+            )}
           >
-            <span className="numeric w-[5.6rem] shrink-0 truncate text-[11.5px] text-fg-muted">
-              {row.column}
-            </span>
-            <span className="shrink-0 text-[11px] text-fg-subtle" aria-hidden="true">
-              →
-            </span>
-            <span
-              className={cn(
-                "min-w-0 flex-1 truncate text-[12px] font-medium",
-                row.state === "exact" ? "text-fg" : "text-fg-subtle",
-              )}
-            >
-              {row.field}
-            </span>
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                row.state === "exact"
-                  ? "bg-positive-soft text-positive"
-                  : "bg-accent-soft text-accent-on-soft",
-              )}
-            >
-              {row.state === "exact" ? "Exact" : "Needs you"}
-            </span>
-          </li>
-        ))}
+            {step >= 2 ? "Read" : "Reading…"}
+          </span>
+        </div>
+      </div>
+
+      <ul className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+        {MAPPED.map((row, index) => {
+          const named = step >= 2;
+          const linked = step >= 3;
+          return (
+            <li key={row.column} className="flex items-center gap-3 px-4 py-2.5">
+              <span
+                className="numeric w-[5.6rem] shrink-0 truncate text-[11.5px] text-fg-muted transition-opacity duration-300"
+                style={{
+                  opacity: named ? 1 : 0,
+                  transitionDelay: named ? `${index * 70}ms` : "0ms",
+                }}
+              >
+                {row.column}
+              </span>
+              <span
+                className="shrink-0 text-[11px] text-fg-subtle transition-all duration-300"
+                style={{
+                  opacity: linked ? 1 : 0,
+                  transform: linked ? "none" : "translateX(-4px)",
+                  transitionDelay: linked ? `${index * 110}ms` : "0ms",
+                }}
+                aria-hidden="true"
+              >
+                →
+              </span>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 truncate text-[12px] font-medium transition-all duration-300",
+                  row.state === "exact" ? "text-fg" : "text-fg-subtle",
+                )}
+                style={{
+                  opacity: linked ? 1 : 0,
+                  transform: linked ? "none" : "translateX(-6px)",
+                  transitionDelay: linked ? `${index * 110}ms` : "0ms",
+                }}
+              >
+                {row.field}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all duration-300",
+                  row.state === "exact"
+                    ? "bg-positive-soft text-positive"
+                    : "bg-accent-soft text-accent-on-soft",
+                )}
+                style={{
+                  opacity: linked ? 1 : 0,
+                  transform: linked ? "scale(1)" : "scale(0.9)",
+                  transitionDelay: linked ? `${index * 110 + 90}ms` : "0ms",
+                }}
+              >
+                {row.state === "exact" ? "Exact" : "Needs you"}
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
-      <div className="flex items-center gap-2 border-t border-black/[0.05] px-4 py-2.5 dark:border-white/[0.06]">
+      <div
+        className="flex items-center gap-2 border-t border-black/[0.05] px-4 py-2.5 transition-opacity duration-500 dark:border-white/[0.06]"
+        style={{ opacity: step >= 4 ? 1 : 0 }}
+      >
         <span className="numeric text-[11px] text-fg-muted">
-          1,281 ready
+          <AnimatedNumber
+            value={1281}
+            run={step >= 4}
+            duration={0.9}
+            format={(v) => Math.round(v).toLocaleString("en-US")}
+          />
+          {" ready"}
         </span>
         <span className="numeric ml-auto text-[11px] text-fg-subtle">
           3 already in your library
@@ -709,16 +1097,37 @@ function ImportMockup() {
   );
 }
 
+/** 1 file lands · 2 headers read · 3 columns connect · 4 counts settle · 5 done */
+const IMPORT_AT = [150, 900, 1300, 2300, 2700] as const;
+
 export function BringItIn() {
+  const { ref, step } = useSequence<HTMLDivElement>({ at: IMPORT_AT, amount: 0.25 });
+
   return (
     <Section id="import" className="border-t border-border">
       {/* Visual left, prose right — the mirror of the step above it, so the
           page alternates between sections rather than inside them. */}
       <div className="grid grid-cols-1 items-center gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-        <div className="relative">
+        <div ref={ref} className="relative">
           <IsometricStage>
-            <ImportMockup />
+            <ImportMockup step={step} />
           </IsometricStage>
+
+          {/* The confirmation, over the stage rather than inside it. */}
+          <div
+            className={cn(
+              "pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2",
+              "transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              step >= 5 ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
+            )}
+          >
+            <div className="glass-note glass-note-accent flex items-center gap-2 rounded-full px-3 py-1.5 backdrop-blur-xl backdrop-saturate-150">
+              <Check className="size-3 shrink-0 text-positive" aria-hidden="true" />
+              <span className="text-[11.5px] font-medium text-fg">
+                1,281 trades imported
+              </span>
+            </div>
+          </div>
 
           <div className="mt-6 flex justify-center lg:mt-0 lg:block">
             {/* Clear of the panel, not over it. At `bottom-2` the card landed

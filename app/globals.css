@@ -799,3 +799,97 @@
 @media (prefers-reduced-motion: reduce) {
   .sv-ellipsis::after { animation: none; }
 }
+
+/* --------------------------------------------------------------------------
+   GLASS, THE TWO TIERS THE PRODUCT DEMONSTRATIONS NEEDED
+   `.glass`, `.glass-card`, `.glass-strong` and `.glass-control` already
+   cover panels, raised cards, occluding surfaces and controls. These are the
+   two that were missing: the notification that lands over a demonstration
+   while it runs, and the small badge inside one. Both are defined in tokens,
+   so a section that is paper in light mode and obsidian in dark gets the
+   right material in each without a second definition.
+
+   The blur itself is deliberately NOT here. This build strips a hand-written
+   backdrop-filter out of custom CSS, so blur arrives as a Tailwind utility
+   in the markup and these rules carry only what survives.
+   -------------------------------------------------------------------------- */
+
+.glass-note {
+  background-color: color-mix(in srgb, var(--surface) 72%, transparent);
+  background-image: linear-gradient(
+    180deg,
+    var(--glass-sheen-top),
+    var(--glass-sheen-bottom)
+  );
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    0 2px 6px -2px rgb(0 0 0 / 0.2),
+    0 16px 36px -14px rgb(16 24 40 / 0.4),
+    0 40px 80px -44px rgb(16 24 40 / 0.6);
+}
+
+/* A reflection of the accent, not a glow of it. Low enough that it reads as
+   the surface catching light from the blue beneath it. */
+.glass-note-accent {
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 0 0 1px var(--accent-soft),
+    0 2px 6px -2px rgb(0 0 0 / 0.2),
+    0 18px 40px -14px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 44px 88px -48px rgb(16 24 40 / 0.6);
+}
+
+.glass-chip {
+  background-color: color-mix(in srgb, var(--surface) 62%, transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight);
+}
+
+/* The library rows, which are the one thing on these sections a visitor can
+   actually touch. Transform and shadow only, so it composites. */
+.glass-row {
+  transition:
+    transform 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    border-color 180ms var(--ease-out);
+  border: 1px solid transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glass-row:hover {
+    transform: translate3d(0, -2px, 0);
+    border-color: var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      0 10px 24px -12px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
+
+/* Touch devices get the lifted state on press instead, so the affordance is
+   not simply absent where there is no cursor. */
+.glass-row:active {
+  transform: translate3d(0, -1px, 0);
+  border-color: var(--glass-border);
+}
+
+/* The library's search query, typed.
+   A width animation in `ch` steps rather than a string sliced in React: six
+   characters would otherwise be six renders of the whole panel. `both` holds
+   the final width, so the query stays on screen after it lands, and the
+   reduced-motion block above collapses the duration rather than removing it
+   — the text ends up fully typed either way. */
+@keyframes sv-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* Clipped rather than width-animated.
+   The first version animated width to `6ch` for a six-character query, and
+   `ch` is the width of a zero: "XAUUSD" is all capitals and wider than that,
+   so the final D stayed clipped and the field read "XAUUSI". A clip-path
+   inset resolves against the element's own box, so it is exact whatever the
+   string and whatever the font. */
+.sv-type {
+  animation: sv-type 620ms steps(6, end) both;
+}

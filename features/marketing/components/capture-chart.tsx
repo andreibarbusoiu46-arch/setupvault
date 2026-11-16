@@ -92,7 +92,17 @@ const TIME_MARKS = [6, 20, 34, 48];
 const TIMEFRAMES = ["1m", "5m", "15m", "1H"] as const;
 const INDICATORS = ["EMA 9", "EMA 21", "VWAP"] as const;
 
-export function CaptureChart() {
+/**
+ * `step` drives the reveal:
+ *   0 nothing drawn · 1 candles populate · 2 the entry line draws ·
+ *   3 the risk and reward boxes open from the entry · 4 the R plate lands.
+ *
+ * It defaults to the finished state, so the server response, a reader
+ * without JavaScript and a reader who prefers reduced motion all get a
+ * complete chart. The sequence only ever removes things that are already
+ * correct and puts them back.
+ */
+export function CaptureChart({ step = 4 }: { step?: number }) {
   const entryY = y(LEVELS.entry);
   const stopY = y(LEVELS.stop);
   const targetY = y(LEVELS.target);
@@ -173,7 +183,9 @@ export function CaptureChart() {
             ))}
           </g>
 
-          {/* The long-position tool: reward above the entry, risk below it. */}
+          {/* The long-position tool: reward above the entry, risk below it.
+              Both open from the entry line rather than fading in, because
+              that is the gesture the tool makes when a trader drags it. */}
           <rect
             x={boxX}
             y={targetY}
@@ -181,6 +193,11 @@ export function CaptureChart() {
             height={entryY - targetY}
             className="fill-positive/[0.09] stroke-positive/50"
             strokeWidth="0.8"
+            style={{
+              transform: step >= 3 ? "scaleY(1)" : "scaleY(0)",
+              transformOrigin: `0px ${entryY}px`,
+              transition: "transform 620ms cubic-bezier(0.32, 0.72, 0, 1) 120ms",
+            }}
           />
           <rect
             x={boxX}
@@ -189,7 +206,14 @@ export function CaptureChart() {
             height={stopY - entryY}
             className="fill-negative/[0.12] stroke-negative/50"
             strokeWidth="0.8"
+            style={{
+              transform: step >= 3 ? "scaleY(1)" : "scaleY(0)",
+              transformOrigin: `0px ${entryY}px`,
+              transition: "transform 620ms cubic-bezier(0.32, 0.72, 0, 1)",
+            }}
           />
+          {/* Drawn left to right with a dash offset against a precomputed
+              length: same picture, no attribute rebuilt per frame. */}
           <line
             x1="0"
             x2={W}
@@ -197,7 +221,11 @@ export function CaptureChart() {
             y2={entryY}
             className="stroke-fg-muted"
             strokeWidth="0.9"
-            strokeDasharray="4 3"
+            strokeDasharray={step >= 2 ? "4 3" : `${W} ${W}`}
+            style={{
+              strokeDashoffset: step >= 2 ? 0 : W,
+              transition: "stroke-dashoffset 560ms cubic-bezier(0.32, 0.72, 0, 1)",
+            }}
           />
 
           {/* Candles. */}
@@ -210,6 +238,15 @@ export function CaptureChart() {
               <g
                 key={i}
                 className={bull ? "fill-positive stroke-positive" : "fill-negative stroke-negative"}
+                // Staggered by index, which is what makes the session read
+                // as being drawn rather than switched on. Opacity only — a
+                // per-candle transform would need a per-candle origin and
+                // buys nothing at this size.
+                style={{
+                  opacity: step >= 1 ? 1 : 0,
+                  transition: "opacity 300ms linear",
+                  transitionDelay: step >= 1 ? `${i * 20}ms` : "0ms",
+                }}
               >
                 <line
                   x1={cx}
@@ -251,7 +288,11 @@ export function CaptureChart() {
                 width={BODY}
                 height={h}
                 className={close >= open ? "fill-positive" : "fill-negative"}
-                opacity="0.38"
+                style={{
+                  opacity: step >= 1 ? 0.38 : 0,
+                  transition: "opacity 300ms linear",
+                  transitionDelay: step >= 1 ? `${i * 20}ms` : "0ms",
+                }}
               />
             );
           })}
@@ -259,7 +300,12 @@ export function CaptureChart() {
           {/* The R multiple, on its own plate: candles run straight through
               this part of the box, and a number half-behind one is worse
               than no number at all. */}
-          <g>
+          <g
+            style={{
+              opacity: step >= 4 ? 1 : 0,
+              transition: "opacity 360ms cubic-bezier(0.32, 0.72, 0, 1)",
+            }}
+          >
             <rect
               x={(boxX + W) / 2 - 27}
               y={(targetY + entryY) / 2 - 11}
